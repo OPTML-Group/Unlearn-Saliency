@@ -14,7 +14,7 @@ With evolving data regulations, machine unlearning (MU) has become an important 
 SalUn can be applied to different tasks such as image classification and image generation. You can click the link below to access a more detailed installation guide.
 * [SalUn for Image Classification](Classification/README.md)
 * SalUn for Image Generation
-  * [DDPM](DDPM/README.md)
+  * [Classifier-free Guidance DDPM](DDPM/README.md)
   * [Stable Diffusion](SD/README.md)
 
 ## Contributors
