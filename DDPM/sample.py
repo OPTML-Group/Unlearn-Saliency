@@ -1,14 +1,14 @@
 import argparse
-import traceback
 import logging
-import yaml
-import sys
 import os
-import torch
-import numpy as np
+import sys
+import traceback
 
-from runners.diffusion import Diffusion
+import numpy as np
+import torch
+import yaml
 from functions import dict2namespace
+from runners.diffusion import Diffusion
 
 torch.set_printoptions(sci_mode=False)
 
@@ -20,18 +20,28 @@ def parse_args_and_config():
         "--config", type=str, required=True, help="Path to the config file"
     )
     parser.add_argument(
-        "--ckpt_folder", type=str, help="Path to folder with pretrained model for sampling (only necessary if sampling)"
+        "--ckpt_folder",
+        type=str,
+        help="Path to folder with pretrained model for sampling (only necessary if sampling)",
     )
     parser.add_argument(
-        "--mode", type=str, choices=['sample_fid', 'sample_classes', 'visualization'], help="Sampling mode."
+        "--mode",
+        type=str,
+        choices=["sample_fid", "sample_classes", "visualization"],
+        help="Sampling mode.",
     )
     parser.add_argument(
-        "--n_samples_per_class", type=int, default=5000, help="Number of samples per class to generate."
+        "--n_samples_per_class",
+        type=int,
+        default=5000,
+        help="Number of samples per class to generate.",
     )
     parser.add_argument(
-        "--classes_to_generate", type=str, default="0,1,2,3,4,5,6,7,8,9",
+        "--classes_to_generate",
+        type=str,
+        default="0,1,2,3,4,5,6,7,8,9",
         help="Either a comma-separated string of class labels to generate e.g, '0,1,2,3', \
-            otherwise prefix 'x' to drop that class , e.g., 'x0, x1' to generate all classes but 0 and 1."
+            otherwise prefix 'x' to drop that class , e.g., 'x0, x1' to generate all classes but 0 and 1.",
     )
     parser.add_argument("--seed", type=int, default=1234, help="Random seed")
     parser.add_argument(
@@ -59,12 +69,12 @@ def parse_args_and_config():
         "--cond_scale",
         type=float,
         default=2.0,
-        help="classifier-free guidance conditional strength"
+        help="classifier-free guidance conditional strength",
     )
     parser.add_argument("--sequence", action="store_true")
     args = parser.parse_args()
-    
-    with open(os.path.join("configs", args.config), 'r') as fp:
+
+    with open(os.path.join("configs", args.config), "r") as fp:
         config = yaml.unsafe_load(fp)
         config = dict2namespace(config)
 
@@ -87,7 +97,7 @@ def main():
         runner.sample()
     except Exception:
         logging.error(traceback.format_exc())
-    
+
     return 0
 
 

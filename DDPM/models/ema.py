@@ -20,7 +20,8 @@ class EMAHelper(object):
         for name, param in module.named_parameters():
             if param.requires_grad:
                 self.shadow[name].data = (
-                    1. - self.mu) * param.data + self.mu * self.shadow[name].data
+                    1.0 - self.mu
+                ) * param.data + self.mu * self.shadow[name].data
 
     def ema(self, module):
         if isinstance(module, nn.DataParallel):
@@ -30,7 +31,7 @@ class EMAHelper(object):
                 param.data.copy_(self.shadow[name].data)
 
     def ema_copy(self, module):
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         if isinstance(module, nn.DataParallel):
             inner_module = module.module
             module_copy = type(inner_module)(inner_module.config).to(device)

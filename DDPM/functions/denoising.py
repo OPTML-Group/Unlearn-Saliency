@@ -21,13 +21,14 @@ def generalized_steps(x, seq, model, b, **kwargs):
             xt = xs[-1].to(x.device)
             et = model(xt, t)
             x0_t = (xt - et * (1 - at).sqrt()) / at.sqrt()
-            x0_preds.append(x0_t.to('cpu'))
+            x0_preds.append(x0_t.to("cpu"))
             c1 = (
-                kwargs.get("eta", 0) * ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt()
+                kwargs.get("eta", 0)
+                * ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt()
             )
-            c2 = ((1 - at_next) - c1 ** 2).sqrt()
+            c2 = ((1 - at_next) - c1**2).sqrt()
             xt_next = at_next.sqrt() * x0_t + c1 * torch.randn_like(x) + c2 * et
-            xs.append(xt_next.to('cpu'))
+            xs.append(xt_next.to("cpu"))
 
     return xs, x0_preds
 
@@ -52,9 +53,10 @@ def ddpm_steps(x, seq, model, b, **kwargs):
 
             x0_from_e = (1.0 / at).sqrt() * x - (1.0 / at - 1).sqrt() * e
             x0_from_e = torch.clamp(x0_from_e, -1, 1)
-            x0_preds.append(x0_from_e.to('cpu'))
+            x0_preds.append(x0_from_e.to("cpu"))
             mean_eps = (
-                (atm1.sqrt() * beta_t) * x0_from_e + ((1 - beta_t).sqrt() * (1 - atm1)) * x
+                (atm1.sqrt() * beta_t) * x0_from_e
+                + ((1 - beta_t).sqrt() * (1 - atm1)) * x
             ) / (1.0 - at)
 
             mean = mean_eps
@@ -63,11 +65,11 @@ def ddpm_steps(x, seq, model, b, **kwargs):
             mask = mask.view(-1, 1, 1, 1)
             logvar = beta_t.log()
             sample = mean + mask * torch.exp(0.5 * logvar) * noise
-            xs.append(sample.to('cpu'))
+            xs.append(sample.to("cpu"))
     return xs, x0_preds
 
 
-def generalized_steps_conditional(x, c, seq, model, b, cond_scale=3., **kwargs):
+def generalized_steps_conditional(x, c, seq, model, b, cond_scale=3.0, **kwargs):
     with torch.no_grad():
         n = x.size(0)
         seq_next = [-1] + list(seq[:-1])
@@ -79,15 +81,16 @@ def generalized_steps_conditional(x, c, seq, model, b, cond_scale=3., **kwargs):
             at = compute_alpha(b, t.long())
             at_next = compute_alpha(b, next_t.long())
             xt = xs[-1].to(x.device)
-            et = model(xt, t, c, cond_scale=cond_scale, mode='test')
+            et = model(xt, t, c, cond_scale=cond_scale, mode="test")
             x0_t = (xt - et * (1 - at).sqrt()) / at.sqrt()
-            x0_preds.append(x0_t.to('cpu'))
+            x0_preds.append(x0_t.to("cpu"))
             c1 = (
-                kwargs.get("eta", 0) * ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt()
+                kwargs.get("eta", 0)
+                * ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt()
             )
-            c2 = ((1 - at_next) - c1 ** 2).sqrt()
+            c2 = ((1 - at_next) - c1**2).sqrt()
             xt_next = at_next.sqrt() * x0_t + c1 * torch.randn_like(x) + c2 * et
-            xs.append(xt_next.to('cpu'))
+            xs.append(xt_next.to("cpu"))
 
     return xs, x0_preds
 
@@ -107,14 +110,15 @@ def ddpm_step_conditional(x, c, seq, model, b, cond_scale, **kwargs):
             beta_t = 1 - at / atm1
             x = xs[-1].to(x.device)
 
-            output = model(x, t.float(), c, cond_scale=cond_scale, mode='test')
+            output = model(x, t.float(), c, cond_scale=cond_scale, mode="test")
             e = output
 
             x0_from_e = (1.0 / at).sqrt() * x - (1.0 / at - 1).sqrt() * e
             x0_from_e = torch.clamp(x0_from_e, -1, 1)
-            x0_preds.append(x0_from_e.to('cpu'))
+            x0_preds.append(x0_from_e.to("cpu"))
             mean_eps = (
-                (atm1.sqrt() * beta_t) * x0_from_e + ((1 - beta_t).sqrt() * (1 - atm1)) * x
+                (atm1.sqrt() * beta_t) * x0_from_e
+                + ((1 - beta_t).sqrt() * (1 - atm1)) * x
             ) / (1.0 - at)
 
             mean = mean_eps
@@ -123,6 +127,5 @@ def ddpm_step_conditional(x, c, seq, model, b, cond_scale, **kwargs):
             mask = mask.view(-1, 1, 1, 1)
             logvar = beta_t.log()
             sample = mean + mask * torch.exp(0.5 * logvar) * noise
-            xs.append(sample.to('cpu'))
+            xs.append(sample.to("cpu"))
     return xs, x0_preds
-

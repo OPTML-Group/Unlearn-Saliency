@@ -1,31 +1,34 @@
 import argparse
-import yaml
-import sys
 import os
-import torch
-import numpy as np
+import sys
 
-from runners.diffusion import Diffusion
+import numpy as np
+import torch
+import yaml
 from functions import dict2namespace
+from runners.diffusion import Diffusion
 
 torch.set_printoptions(sci_mode=False)
 
 
 def parse_args_and_config():
     parser = argparse.ArgumentParser(description=globals()["__doc__"])
-    
+
     parser.add_argument(
         "--config", type=str, required=True, help="Path to the config file"
     )
     parser.add_argument(
-        "--ckpt_folder", type=str, required=True, help="Path to pretrained model for sampling"
+        "--ckpt_folder",
+        type=str,
+        required=True,
+        help="Path to pretrained model for sampling",
     )
     parser.add_argument("--seed", type=int, default=1234, help="Random seed")
     parser.add_argument(
-            "--n_chunks", 
-            type=int, 
-            default=20, 
-            help="Chunking of timesteps for FIM calculation. Increase this if you are running out of GPU memory."
+        "--n_chunks",
+        type=int,
+        default=20,
+        help="Chunking of timesteps for FIM calculation. Increase this if you are running out of GPU memory.",
     )
     parser.add_argument(
         "--comment", type=str, default="", help="A string for experiment comment"
@@ -63,7 +66,7 @@ def parse_args_and_config():
     parser.add_argument("--sequence", action="store_true")
 
     args = parser.parse_args()
-    with open(os.path.join("configs", args.config), 'r') as fp:
+    with open(os.path.join("configs", args.config), "r") as fp:
         config = yaml.unsafe_load(fp)
     config = dict2namespace(config)
 

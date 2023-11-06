@@ -1,8 +1,11 @@
 import time
+
 import torch
 import torch.nn as nn
 import utils
+
 from .impl import iterative_unlearn
+
 
 def expand_model(model):
     last_fc_name = None
@@ -39,8 +42,11 @@ def expand_model(model):
         current_module = getattr(current_module, part)
     setattr(current_module, parts[-1], new_last_fc_layer)
 
+
 @iterative_unlearn
-def boundary_expanding_iter(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
+def boundary_expanding_iter(
+    data_loaders, model, criterion, optimizer, epoch, args, mask=None
+):
     train_loader = data_loaders["forget"]
 
     losses = utils.AverageMeter()
@@ -53,7 +59,7 @@ def boundary_expanding_iter(data_loaders, model, criterion, optimizer, epoch, ar
     for i, (image, target) in enumerate(train_loader):
         image = image.cuda()
         target = target.cuda()
-        
+
         target_label = torch.ones_like(target)
         target_label *= args.num_classes
         # compute output
@@ -62,13 +68,13 @@ def boundary_expanding_iter(data_loaders, model, criterion, optimizer, epoch, ar
 
         optimizer.zero_grad()
         loss.backward()
-        
+
         if mask:
             for name, param in model.named_parameters():
                 if param.grad is not None:
                     param.grad *= mask[name]
                     # print(mask[name])
-        
+
         optimizer.step()
 
         output = output_clean.float()
@@ -81,14 +87,17 @@ def boundary_expanding_iter(data_loaders, model, criterion, optimizer, epoch, ar
 
         if (i + 1) % args.print_freq == 0:
             end = time.time()
-            print('Epoch: [{0}][{1}/{2}]\t'
-                'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                'Accuracy {top1.val:.3f} ({top1.avg:.3f})\t'
-                'Time {3:.2f}'.format(
-                    epoch, i, len(train_loader), end-start, loss=losses, top1=top1))
+            print(
+                "Epoch: [{0}][{1}/{2}]\t"
+                "Loss {loss.val:.4f} ({loss.avg:.4f})\t"
+                "Accuracy {top1.val:.3f} ({top1.avg:.3f})\t"
+                "Time {3:.2f}".format(
+                    epoch, i, len(train_loader), end - start, loss=losses, top1=top1
+                )
+            )
             start = time.time()
 
-    print('train_accuracy {top1.avg:.3f}'.format(top1=top1))
+    print("train_accuracy {top1.avg:.3f}".format(top1=top1))
 
     return top1.avg
 

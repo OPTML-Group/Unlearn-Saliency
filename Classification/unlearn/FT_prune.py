@@ -1,7 +1,9 @@
 import copy
+
 import pruner
 import trainer
-from .FT import FT_l1, FT
+
+from .FT import FT, FT_l1
 
 
 def FT_prune(data_loaders, model, criterion, args, mask=None):

@@ -1,5 +1,6 @@
-from . import utils
 import trainer
+
+from . import utils
 
 
 def synflow(model, train_loader, test_loader, criterion, args):
@@ -10,5 +11,6 @@ def synflow(model, train_loader, test_loader, criterion, args):
         utils.check_sparsity(model)
 
     trainer.train_with_rewind(
-        model, optimizer, scheduler, train_loader, criterion, args)
+        model, optimizer, scheduler, train_loader, criterion, args
+    )
     utils.check_sparsity(model)

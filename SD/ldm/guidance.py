@@ -1,10 +1,11 @@
+import abc
 from typing import List, Tuple
-from scipy import interpolate
+
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 from IPython.display import clear_output
-import abc
+from scipy import interpolate
 
 
 class GuideModel(torch.nn.Module, abc.ABC):
@@ -45,28 +46,28 @@ class Guider(torch.nn.Module):
         self.ddim_timesteps = sampler.ddim_timesteps
         self.ddpm_num_timesteps = sampler.ddpm_num_timesteps
 
-
     def get_scales(self):
         if isinstance(self.scale_schedule, float):
-            return len(self.ddim_timesteps)*[self.scale_schedule]
+            return len(self.ddim_timesteps) * [self.scale_schedule]
 
-        interpolater = interpolate.interp1d(self.scale_schedule["times"], self.scale_schedule["values"])
-        fractional_steps = np.array(self.ddim_timesteps)/self.ddpm_num_timesteps
+        interpolater = interpolate.interp1d(
+            self.scale_schedule["times"], self.scale_schedule["values"]
+        )
+        fractional_steps = np.array(self.ddim_timesteps) / self.ddpm_num_timesteps
         return interpolater(fractional_steps)
 
     def modify_score(self, model, e_t, x, t, c):
-
         # TODO look up index by t
         scale = self.get_scales()[self.index]
 
-        if (scale == 0):
+        if scale == 0:
             return e_t
 
         sqrt_1ma = self.sampler.ddim_sqrt_one_minus_alphas[self.index].to(x.device)
         with torch.enable_grad():
             x_in = x.detach().requires_grad_(True)
             pred_x0 = model.predict_start_from_noise(x_in, t=t, noise=e_t)
-            x_img = model.first_stage_model.decode((1/0.18215)*pred_x0)
+            x_img = model.first_stage_model.decode((1 / 0.18215) * pred_x0)
 
             inp = self.guide_model.preprocess(x_img)
             loss = self.guide_model.compute_loss(inp)
@@ -75,17 +76,30 @@ class Guider(torch.nn.Module):
 
             if self.show:
                 clear_output(wait=True)
-                print(loss.item(), scale, correction.abs().max().item(), e_t.abs().max().item())
-                self.history.append([loss.item(), scale, correction.min().item(), correction.max().item()])
-                plt.imshow((inp[0].detach().permute(1,2,0).clamp(-1,1).cpu()+1)/2)
-                plt.axis('off')
+                print(
+                    loss.item(),
+                    scale,
+                    correction.abs().max().item(),
+                    e_t.abs().max().item(),
+                )
+                self.history.append(
+                    [
+                        loss.item(),
+                        scale,
+                        correction.min().item(),
+                        correction.max().item(),
+                    ]
+                )
+                plt.imshow(
+                    (inp[0].detach().permute(1, 2, 0).clamp(-1, 1).cpu() + 1) / 2
+                )
+                plt.axis("off")
                 plt.show()
                 plt.imshow(correction[0][0].detach().cpu())
-                plt.axis('off')
+                plt.axis("off")
                 plt.show()
 
-
-        e_t_mod = e_t - sqrt_1ma*correction
+        e_t_mod = e_t - sqrt_1ma * correction
         if self.show:
             fig, axs = plt.subplots(1, 3)
             axs[0].imshow(e_t[0][0].detach().cpu(), vmin=-2, vmax=+2)

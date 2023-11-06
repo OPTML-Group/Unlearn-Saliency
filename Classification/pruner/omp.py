@@ -1,4 +1,5 @@
 import trainer
+
 from . import utils
 
 
@@ -7,7 +8,8 @@ def omp(model, train_loader, test_loader, criterion, args):
 
     utils.check_sparsity(model)
     rewind_state_dict = trainer.train_with_rewind(
-        model, optimizer, scheduler, train_loader, criterion, args)
+        model, optimizer, scheduler, train_loader, criterion, args
+    )
 
     # ================================pruning================================
 
@@ -16,12 +18,12 @@ def omp(model, train_loader, test_loader, criterion, args):
     print("Performance on the test data set")
     trainer.validate(test_loader, model, criterion, args)
 
-    #pruning and rewind
+    # pruning and rewind
     if args.random_prune:
-        print('random pruning')
+        print("random pruning")
         utils.pruning_model_random(model, args.rate)
     else:
-        print('L1 pruning')
+        print("L1 pruning")
         utils.pruning_model(model, args.rate)
 
     utils.check_sparsity(model)
@@ -42,4 +44,5 @@ def omp(model, train_loader, test_loader, criterion, args):
 
     utils.check_sparsity(model)
     trainer.train_with_rewind(
-        model, optimizer, scheduler, train_loader, criterion, args)
+        model, optimizer, scheduler, train_loader, criterion, args
+    )

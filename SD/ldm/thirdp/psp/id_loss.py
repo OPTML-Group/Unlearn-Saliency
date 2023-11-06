@@ -1,14 +1,16 @@
 # https://github.com/eladrich/pixel2style2pixel
 import torch
-from torch import nn
 from ldm.thirdp.psp.model_irse import Backbone
+from torch import nn
 
 
 class IDFeatures(nn.Module):
     def __init__(self, model_path):
         super(IDFeatures, self).__init__()
-        print('Loading ResNet ArcFace')
-        self.facenet = Backbone(input_size=112, num_layers=50, drop_ratio=0.6, mode='ir_se')
+        print("Loading ResNet ArcFace")
+        self.facenet = Backbone(
+            input_size=112, num_layers=50, drop_ratio=0.6, mode="ir_se"
+        )
         self.facenet.load_state_dict(torch.load(model_path))
         self.face_pool = torch.nn.AdaptiveAvgPool2d((112, 112))
         self.facenet.eval()

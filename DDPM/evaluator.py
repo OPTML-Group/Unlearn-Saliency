@@ -2,9 +2,12 @@
 Modified from https://github.com/openai/guided-diffusion/blob/main/evaluations/evaluator.py.
 """
 import os
+
 cuda_path = "/usr/local/cuda-11.8"
 os.environ["PATH"] = f"{cuda_path}/bin:{os.environ['PATH']}"
-os.environ["LD_LIBRARY_PATH"] = f"{cuda_path}/lib64:{os.environ.get('LD_LIBRARY_PATH', '')}"
+os.environ[
+    "LD_LIBRARY_PATH"
+] = f"{cuda_path}/lib64:{os.environ.get('LD_LIBRARY_PATH', '')}"
 
 import argparse
 import io
@@ -18,14 +21,13 @@ from multiprocessing import cpu_count
 from multiprocessing.pool import ThreadPool
 from typing import Iterable, Optional, Tuple
 
+import cv2
 import numpy as np
+import pandas as pd
 import requests
 import tensorflow.compat.v1 as tf
 from scipy import linalg
 from tqdm.auto import tqdm
-import cv2
-
-import pandas as pd
 
 INCEPTION_V3_URL = "https://openaipublic.blob.core.windows.net/diffusion/jul-2021/ref_batches/classify_image_graph_def.pb"
 INCEPTION_V3_PATH = "classify_image_graph_def.pb"
@@ -39,10 +41,10 @@ def main():
     parser.add_argument("ref_batch", help="path to reference folder")
     parser.add_argument("sample_batch", help="path to sample folder")
     args = parser.parse_args()
-    
+
     ref_arr = read_images_folder(args.ref_batch)
     sample_arr = read_images_folder(args.sample_batch)
-    
+
     config = tf.ConfigProto(
         allow_soft_placement=True  # allows DecodeJpeg to run on CPU in Inception graph
     )
@@ -73,19 +75,19 @@ def main():
     print("Recall:", recall)
 
     # Check if the CSV file exists
-    csv_file_path = 'results/cifar10/forget/result.csv'
+    csv_file_path = "results/cifar10/forget/result.csv"
     try:
         df = pd.read_csv(csv_file_path, index_col=0)
     except FileNotFoundError:
         df = pd.DataFrame()
-    
-    name = args.ref_batch.split("/")[-3] + '/' + args.ref_batch.split("/")[-2]
+
+    name = args.ref_batch.split("/")[-3] + "/" + args.ref_batch.split("/")[-2]
     result = {
-                'Inception Score': evaluator.compute_inception_score(sample_acts[0]), 
-                'FID': sample_stats.frechet_distance(ref_stats),
-                'sFID': sample_stats_spatial.frechet_distance(ref_stats_spatial),
-                'Precision': prec,
-                'Recall': recall
+        "Inception Score": evaluator.compute_inception_score(sample_acts[0]),
+        "FID": sample_stats.frechet_distance(ref_stats),
+        "sFID": sample_stats_spatial.frechet_distance(ref_stats_spatial),
+        "Precision": prec,
+        "Recall": recall,
     }
 
     if name not in df.index:
@@ -97,6 +99,7 @@ def main():
     print(df)
     # Save the updated DataFrame to CSV
     df.to_csv(csv_file_path)
+
 
 class InvalidFIDException(Exception):
     pass
@@ -167,7 +170,9 @@ class Evaluator:
         with self.sess.graph.as_default():
             self.image_input = tf.placeholder(tf.float32, shape=[None, None, None, 3])
             self.softmax_input = tf.placeholder(tf.float32, shape=[None, 2048])
-            self.pool_features, self.spatial_features = _create_feature_graph(self.image_input)
+            self.pool_features, self.spatial_features = _create_feature_graph(
+                self.image_input
+            )
             self.softmax = _create_softmax_graph(self.softmax_input)
 
     def warmup(self):
@@ -176,12 +181,14 @@ class Evaluator:
     # def read_activations(self, npz_path: str) -> Tuple[np.ndarray, np.ndarray]:
     #     with open_npz_array(npz_path, "arr_0") as reader:
     #         return self.compute_activations(reader.read_batches(self.batch_size))
-        
+
     def read_activations(self, np_arr: str) -> Tuple[np.ndarray, np.ndarray]:
         reader = MemoryNpzArrayReader(np_arr)
         return self.compute_activations(reader.read_batches(self.batch_size))
 
-    def compute_activations(self, batches: Iterable[np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:
+    def compute_activations(
+        self, batches: Iterable[np.ndarray]
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Compute image features for downstream evals.
 
@@ -218,11 +225,15 @@ class Evaluator:
         sigma = np.cov(activations, rowvar=False)
         return FIDStatistics(mu, sigma)
 
-    def compute_inception_score(self, activations: np.ndarray, split_size: int = 5000) -> float:
+    def compute_inception_score(
+        self, activations: np.ndarray, split_size: int = 5000
+    ) -> float:
         softmax_out = []
         for i in range(0, len(activations), self.softmax_batch_size):
             acts = activations[i : i + self.softmax_batch_size]
-            softmax_out.append(self.sess.run(self.softmax, feed_dict={self.softmax_input: acts}))
+            softmax_out.append(
+                self.sess.run(self.softmax, feed_dict={self.softmax_input: acts})
+            )
         preds = np.concatenate(softmax_out, axis=0)
         # https://github.com/openai/improved-gan/blob/4f5d1ec5c16a7eceb206f42bfc652693601e1d5c/inception_score/model.py#L46
         scores = []
@@ -312,7 +323,9 @@ class ManifoldEstimator:
             radii[begin1:end1, :] = np.concatenate(
                 [
                     x[:, self.nhood_sizes]
-                    for x in _numpy_partition(distance_batch[0 : end1 - begin1, :], seq, axis=1)
+                    for x in _numpy_partition(
+                        distance_batch[0 : end1 - begin1, :], seq, axis=1
+                    )
                 ],
                 axis=0,
             )
@@ -322,13 +335,17 @@ class ManifoldEstimator:
             radii[radii > max_distances] = 0
         return radii
 
-    def evaluate(self, features: np.ndarray, radii: np.ndarray, eval_features: np.ndarray):
+    def evaluate(
+        self, features: np.ndarray, radii: np.ndarray, eval_features: np.ndarray
+    ):
         """
         Evaluate if new feature vectors are at the manifold.
         """
         num_eval_images = eval_features.shape[0]
         num_ref_images = radii.shape[0]
-        distance_batch = np.zeros([self.row_batch_size, num_ref_images], dtype=np.float32)
+        distance_batch = np.zeros(
+            [self.row_batch_size, num_ref_images], dtype=np.float32
+        )
         batch_predictions = np.zeros([num_eval_images, self.num_nhoods], dtype=np.int32)
         max_realism_score = np.zeros([num_eval_images], dtype=np.float32)
         nearest_indices = np.zeros([num_eval_images], dtype=np.int32)
@@ -350,12 +367,16 @@ class ManifoldEstimator:
             # the new sample lies at the estimated manifold.
             # The radii of the hyperspheres are determined from distances of neighborhood size k.
             samples_in_manifold = distance_batch[0 : end1 - begin1, :, None] <= radii
-            batch_predictions[begin1:end1] = np.any(samples_in_manifold, axis=1).astype(np.int32)
+            batch_predictions[begin1:end1] = np.any(samples_in_manifold, axis=1).astype(
+                np.int32
+            )
 
             max_realism_score[begin1:end1] = np.max(
                 radii[:, 0] / (distance_batch[0 : end1 - begin1, :] + self.eps), axis=1
             )
-            nearest_indices[begin1:end1] = np.argmin(distance_batch[0 : end1 - begin1, :], axis=1)
+            nearest_indices[begin1:end1] = np.argmin(
+                distance_batch[0 : end1 - begin1, :], axis=1
+            )
 
         return {
             "fraction": float(np.mean(batch_predictions)),
@@ -422,7 +443,9 @@ class DistanceBlock:
             self.distance_block = tf.cond(
                 tf.reduce_all(tf.math.is_finite(distance_block_16)),
                 lambda: tf.cast(distance_block_16, tf.float32),
-                lambda: _batch_pairwise_distances(self._features_batch1, self._features_batch2),
+                lambda: _batch_pairwise_distances(
+                    self._features_batch1, self._features_batch2
+                ),
             )
 
             # Extra logic for less thans.
@@ -430,7 +453,9 @@ class DistanceBlock:
             self._radii2 = tf.placeholder(tf.float32, shape=[None, None])
             dist32 = tf.cast(self.distance_block, tf.float32)[..., None]
             self._batch_1_in = tf.math.reduce_any(dist32 <= self._radii2, axis=1)
-            self._batch_2_in = tf.math.reduce_any(dist32 <= self._radii1[:, None], axis=0)
+            self._batch_2_in = tf.math.reduce_any(
+                dist32 <= self._radii1[:, None], axis=0
+            )
 
     def pairwise_distances(self, U, V):
         """
@@ -702,13 +727,17 @@ def read_images_folder(folder_path):
         np.ndarray: A numpy array containing all images from the folder.
     """
     images = []
-    for filename in tqdm(os.listdir(folder_path), desc=f"Reading files from {folder_path} into numpy array."):
+    for filename in tqdm(
+        os.listdir(folder_path),
+        desc=f"Reading files from {folder_path} into numpy array.",
+    ):
         img_path = os.path.join(folder_path, filename)
         img = cv2.imread(img_path)
         images.append(img)
     images = np.array(images)
-    
+
     return images
+
 
 if __name__ == "__main__":
     main()

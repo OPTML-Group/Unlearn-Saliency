@@ -1,4 +1,5 @@
 import math
+
 import torch
 import torch.nn as nn
 from einops import rearrange, repeat
@@ -6,12 +7,12 @@ from einops import rearrange, repeat
 
 def prob_mask_like(shape, prob, device):
     if prob == 1:
-        return torch.ones(shape, device = device, dtype = torch.bool)
+        return torch.ones(shape, device=device, dtype=torch.bool)
     elif prob == 0:
-        return torch.zeros(shape, device = device, dtype = torch.bool)
+        return torch.zeros(shape, device=device, dtype=torch.bool)
     else:
-        return torch.zeros(shape, device = device).float().uniform_(0, 1) < prob
-    
+        return torch.zeros(shape, device=device).float().uniform_(0, 1) < prob
+
 
 def get_timestep_embedding(timesteps, embedding_dim):
     """
@@ -36,11 +37,13 @@ def get_timestep_embedding(timesteps, embedding_dim):
 
 def nonlinearity(x):
     # swish
-    return x*torch.sigmoid(x)
+    return x * torch.sigmoid(x)
 
 
 def Normalize(in_channels):
-    return torch.nn.GroupNorm(num_groups=32, num_channels=in_channels, eps=1e-6, affine=True)
+    return torch.nn.GroupNorm(
+        num_groups=32, num_channels=in_channels, eps=1e-6, affine=True
+    )
 
 
 class Upsample(nn.Module):
@@ -48,15 +51,12 @@ class Upsample(nn.Module):
         super().__init__()
         self.with_conv = with_conv
         if self.with_conv:
-            self.conv = torch.nn.Conv2d(in_channels,
-                                        in_channels,
-                                        kernel_size=3,
-                                        stride=1,
-                                        padding=1)
+            self.conv = torch.nn.Conv2d(
+                in_channels, in_channels, kernel_size=3, stride=1, padding=1
+            )
 
     def forward(self, x):
-        x = torch.nn.functional.interpolate(
-            x, scale_factor=2.0, mode="nearest")
+        x = torch.nn.functional.interpolate(x, scale_factor=2.0, mode="nearest")
         if self.with_conv:
             x = self.conv(x)
         return x
@@ -68,11 +68,9 @@ class Downsample(nn.Module):
         self.with_conv = with_conv
         if self.with_conv:
             # no asymmetric padding in torch conv, must do it ourselves
-            self.conv = torch.nn.Conv2d(in_channels,
-                                        in_channels,
-                                        kernel_size=3,
-                                        stride=2,
-                                        padding=0)
+            self.conv = torch.nn.Conv2d(
+                in_channels, in_channels, kernel_size=3, stride=2, padding=0
+            )
 
     def forward(self, x):
         if self.with_conv:
@@ -85,8 +83,16 @@ class Downsample(nn.Module):
 
 
 class ResnetBlock(nn.Module):
-    def __init__(self, *, in_channels, out_channels=None, conv_shortcut=False,
-                 dropout, temb_channels=512, cemb_channels=512):
+    def __init__(
+        self,
+        *,
+        in_channels,
+        out_channels=None,
+        conv_shortcut=False,
+        dropout,
+        temb_channels=512,
+        cemb_channels=512
+    ):
         super().__init__()
         self.in_channels = in_channels
         out_channels = in_channels if out_channels is None else out_channels
@@ -94,40 +100,33 @@ class ResnetBlock(nn.Module):
         self.use_conv_shortcut = conv_shortcut
 
         self.norm1 = Normalize(in_channels)
-        self.conv1 = torch.nn.Conv2d(in_channels,
-                                     out_channels,
-                                     kernel_size=3,
-                                     stride=1,
-                                     padding=1)
-        self.temb_cemb_proj = torch.nn.Linear(temb_channels + cemb_channels,
-                                            out_channels)
+        self.conv1 = torch.nn.Conv2d(
+            in_channels, out_channels, kernel_size=3, stride=1, padding=1
+        )
+        self.temb_cemb_proj = torch.nn.Linear(
+            temb_channels + cemb_channels, out_channels
+        )
         self.norm2 = Normalize(out_channels)
         self.dropout = torch.nn.Dropout(dropout)
-        self.conv2 = torch.nn.Conv2d(out_channels,
-                                     out_channels,
-                                     kernel_size=3,
-                                     stride=1,
-                                     padding=1)
+        self.conv2 = torch.nn.Conv2d(
+            out_channels, out_channels, kernel_size=3, stride=1, padding=1
+        )
         if self.in_channels != self.out_channels:
             if self.use_conv_shortcut:
-                self.conv_shortcut = torch.nn.Conv2d(in_channels,
-                                                     out_channels,
-                                                     kernel_size=3,
-                                                     stride=1,
-                                                     padding=1)
+                self.conv_shortcut = torch.nn.Conv2d(
+                    in_channels, out_channels, kernel_size=3, stride=1, padding=1
+                )
             else:
-                self.nin_shortcut = torch.nn.Conv2d(in_channels,
-                                                    out_channels,
-                                                    kernel_size=1,
-                                                    stride=1,
-                                                    padding=0)
+                self.nin_shortcut = torch.nn.Conv2d(
+                    in_channels, out_channels, kernel_size=1, stride=1, padding=0
+                )
 
     def forward(self, x, temb, cemb):
         h = x
         h = self.norm1(h)
         h = nonlinearity(h)
         h = self.conv1(h)
-        
+
         # branch is named film but this isnt using film haha
         temb_cemb = torch.cat([temb, cemb], dim=-1)
         h = h + self.temb_cemb_proj(nonlinearity(temb_cemb))[:, :, None, None]
@@ -143,7 +142,7 @@ class ResnetBlock(nn.Module):
             else:
                 x = self.nin_shortcut(x)
 
-        return x+h
+        return x + h
 
 
 class AttnBlock(nn.Module):
@@ -152,26 +151,18 @@ class AttnBlock(nn.Module):
         self.in_channels = in_channels
 
         self.norm = Normalize(in_channels)
-        self.q = torch.nn.Conv2d(in_channels,
-                                 in_channels,
-                                 kernel_size=1,
-                                 stride=1,
-                                 padding=0)
-        self.k = torch.nn.Conv2d(in_channels,
-                                 in_channels,
-                                 kernel_size=1,
-                                 stride=1,
-                                 padding=0)
-        self.v = torch.nn.Conv2d(in_channels,
-                                 in_channels,
-                                 kernel_size=1,
-                                 stride=1,
-                                 padding=0)
-        self.proj_out = torch.nn.Conv2d(in_channels,
-                                        in_channels,
-                                        kernel_size=1,
-                                        stride=1,
-                                        padding=0)
+        self.q = torch.nn.Conv2d(
+            in_channels, in_channels, kernel_size=1, stride=1, padding=0
+        )
+        self.k = torch.nn.Conv2d(
+            in_channels, in_channels, kernel_size=1, stride=1, padding=0
+        )
+        self.v = torch.nn.Conv2d(
+            in_channels, in_channels, kernel_size=1, stride=1, padding=0
+        )
+        self.proj_out = torch.nn.Conv2d(
+            in_channels, in_channels, kernel_size=1, stride=1, padding=0
+        )
 
     def forward(self, x):
         h_ = x
@@ -182,30 +173,34 @@ class AttnBlock(nn.Module):
 
         # compute attention
         b, c, h, w = q.shape
-        q = q.reshape(b, c, h*w)
-        q = q.permute(0, 2, 1)   # b,hw,c
-        k = k.reshape(b, c, h*w)  # b,c,hw
-        w_ = torch.bmm(q, k)     # b,hw,hw    w[b,i,j]=sum_c q[b,i,c]k[b,c,j]
-        w_ = w_ * (int(c)**(-0.5))
+        q = q.reshape(b, c, h * w)
+        q = q.permute(0, 2, 1)  # b,hw,c
+        k = k.reshape(b, c, h * w)  # b,c,hw
+        w_ = torch.bmm(q, k)  # b,hw,hw    w[b,i,j]=sum_c q[b,i,c]k[b,c,j]
+        w_ = w_ * (int(c) ** (-0.5))
         w_ = torch.nn.functional.softmax(w_, dim=2)
 
         # attend to values
-        v = v.reshape(b, c, h*w)
-        w_ = w_.permute(0, 2, 1)   # b,hw,hw (first hw of k, second of q)
+        v = v.reshape(b, c, h * w)
+        w_ = w_.permute(0, 2, 1)  # b,hw,hw (first hw of k, second of q)
         # b, c,hw (hw of q) h_[b,c,j] = sum_i v[b,c,i] w_[b,i,j]
         h_ = torch.bmm(v, w_)
         h_ = h_.reshape(b, c, h, w)
 
         h_ = self.proj_out(h_)
 
-        return x+h_
+        return x + h_
 
 
 class Conditional_Model(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        ch, out_ch, ch_mult = config.model.ch, config.model.out_ch, tuple(config.model.ch_mult)
+        ch, out_ch, ch_mult = (
+            config.model.ch,
+            config.model.out_ch,
+            tuple(config.model.ch_mult),
+        )
         num_res_blocks = config.model.num_res_blocks
         attn_resolutions = config.model.attn_resolutions
         dropout = config.model.dropout
@@ -214,12 +209,12 @@ class Conditional_Model(nn.Module):
         resamp_with_conv = config.model.resamp_with_conv
         num_timesteps = config.diffusion.num_diffusion_timesteps
         n_classes = config.data.n_classes
-        
-        if config.model.type == 'bayesian':
+
+        if config.model.type == "bayesian":
             self.logvar = nn.Parameter(torch.zeros(num_timesteps))
-        
+
         self.ch = ch
-        self.temb_ch = self.cemb_ch = self.ch*4
+        self.temb_ch = self.cemb_ch = self.ch * 4
         self.num_resolutions = len(ch_mult)
         self.num_res_blocks = num_res_blocks
         self.resolution = resolution
@@ -228,82 +223,92 @@ class Conditional_Model(nn.Module):
 
         # timestep embedding
         self.temb = nn.Module()
-        self.temb.dense = nn.ModuleList([
-            torch.nn.Linear(self.ch,
-                            self.temb_ch),
-            torch.nn.Linear(self.temb_ch,
-                            self.temb_ch),
-        ])
-        
+        self.temb.dense = nn.ModuleList(
+            [
+                torch.nn.Linear(self.ch, self.temb_ch),
+                torch.nn.Linear(self.temb_ch, self.temb_ch),
+            ]
+        )
+
         # class embedding
         self.classes_emb = nn.Embedding(n_classes, self.ch)
         self.null_classes_emb = nn.Parameter(torch.randn(self.ch))
         self.cemb = nn.Module()
-        self.cemb.dense = nn.ModuleList([
-            torch.nn.Linear(self.ch,
-                            self.cemb_ch),
-            torch.nn.Linear(self.cemb_ch,
-                            self.cemb_ch),
-        ])
-        
+        self.cemb.dense = nn.ModuleList(
+            [
+                torch.nn.Linear(self.ch, self.cemb_ch),
+                torch.nn.Linear(self.cemb_ch, self.cemb_ch),
+            ]
+        )
+
         # downsampling
-        self.conv_in = torch.nn.Conv2d(in_channels,
-                                       self.ch,
-                                       kernel_size=3,
-                                       stride=1,
-                                       padding=1)
+        self.conv_in = torch.nn.Conv2d(
+            in_channels, self.ch, kernel_size=3, stride=1, padding=1
+        )
 
         curr_res = resolution
-        in_ch_mult = (1,)+ch_mult
+        in_ch_mult = (1,) + ch_mult
         self.down = nn.ModuleList()
         block_in = None
         for i_level in range(self.num_resolutions):
             block = nn.ModuleList()
             attn = nn.ModuleList()
-            block_in = ch*in_ch_mult[i_level]
-            block_out = ch*ch_mult[i_level]
+            block_in = ch * in_ch_mult[i_level]
+            block_out = ch * ch_mult[i_level]
             for i_block in range(self.num_res_blocks):
-                block.append(ResnetBlock(in_channels=block_in,
-                                         out_channels=block_out,
-                                         temb_channels=self.temb_ch,
-                                         dropout=dropout))
+                block.append(
+                    ResnetBlock(
+                        in_channels=block_in,
+                        out_channels=block_out,
+                        temb_channels=self.temb_ch,
+                        dropout=dropout,
+                    )
+                )
                 block_in = block_out
                 if curr_res in attn_resolutions:
                     attn.append(AttnBlock(block_in))
             down = nn.Module()
             down.block = block
             down.attn = attn
-            if i_level != self.num_resolutions-1:
+            if i_level != self.num_resolutions - 1:
                 down.downsample = Downsample(block_in, resamp_with_conv)
                 curr_res = curr_res // 2
             self.down.append(down)
 
         # middle
         self.mid = nn.Module()
-        self.mid.block_1 = ResnetBlock(in_channels=block_in,
-                                       out_channels=block_in,
-                                       temb_channels=self.temb_ch,
-                                       dropout=dropout)
+        self.mid.block_1 = ResnetBlock(
+            in_channels=block_in,
+            out_channels=block_in,
+            temb_channels=self.temb_ch,
+            dropout=dropout,
+        )
         self.mid.attn_1 = AttnBlock(block_in)
-        self.mid.block_2 = ResnetBlock(in_channels=block_in,
-                                       out_channels=block_in,
-                                       temb_channels=self.temb_ch,
-                                       dropout=dropout)
+        self.mid.block_2 = ResnetBlock(
+            in_channels=block_in,
+            out_channels=block_in,
+            temb_channels=self.temb_ch,
+            dropout=dropout,
+        )
 
         # upsampling
         self.up = nn.ModuleList()
         for i_level in reversed(range(self.num_resolutions)):
             block = nn.ModuleList()
             attn = nn.ModuleList()
-            block_out = ch*ch_mult[i_level]
-            skip_in = ch*ch_mult[i_level]
-            for i_block in range(self.num_res_blocks+1):
+            block_out = ch * ch_mult[i_level]
+            skip_in = ch * ch_mult[i_level]
+            for i_block in range(self.num_res_blocks + 1):
                 if i_block == self.num_res_blocks:
-                    skip_in = ch*in_ch_mult[i_level]
-                block.append(ResnetBlock(in_channels=block_in+skip_in,
-                                         out_channels=block_out,
-                                         temb_channels=self.temb_ch,
-                                         dropout=dropout))
+                    skip_in = ch * in_ch_mult[i_level]
+                block.append(
+                    ResnetBlock(
+                        in_channels=block_in + skip_in,
+                        out_channels=block_out,
+                        temb_channels=self.temb_ch,
+                        dropout=dropout,
+                    )
+                )
                 block_in = block_out
                 if curr_res in attn_resolutions:
                     attn.append(AttnBlock(block_in))
@@ -317,44 +322,45 @@ class Conditional_Model(nn.Module):
 
         # end
         self.norm_out = Normalize(block_in)
-        self.conv_out = torch.nn.Conv2d(block_in,
-                                        out_ch,
-                                        kernel_size=3,
-                                        stride=1,
-                                        padding=1)
+        self.conv_out = torch.nn.Conv2d(
+            block_in, out_ch, kernel_size=3, stride=1, padding=1
+        )
 
     def forward(self, x, t, c, mode, **kwargs):
-        assert mode in ['train', 'test']
-        
-        if mode =='train':
+        assert mode in ["train", "test"]
+
+        if mode == "train":
             cond_drop_prob = kwargs.get("cond_drop_prob")
             return self._forward(x, t, c, cond_drop_prob=cond_drop_prob)
-    
-        elif mode == 'test':
+
+        elif mode == "test":
             cond_scale = kwargs.get("cond_scale")
             return self._forward_with_cond_scale(x, t, c, cond_scale=cond_scale)
 
-
     def _forward_with_cond_scale(
         self,
-        x, t, c,
-        cond_scale = 1.,
+        x,
+        t,
+        c,
+        cond_scale=1.0,
     ):
-        logits = self._forward(x, t, c, cond_drop_prob = 0.)
+        logits = self._forward(x, t, c, cond_drop_prob=0.0)
 
         if cond_scale == 0:
             return logits
 
-        null_logits = self._forward(x, t, c, cond_drop_prob = 1.)
-        #return null_logits + (logits - null_logits) * cond_scale
+        null_logits = self._forward(x, t, c, cond_drop_prob=1.0)
+        # return null_logits + (logits - null_logits) * cond_scale
 
         return (1 + cond_scale) * logits - cond_scale * null_logits
 
-    def _forward(self, x, t, c, cond_drop_prob = None):
+    def _forward(self, x, t, c, cond_drop_prob=None):
         assert x.shape[2] == x.shape[3] == self.resolution
         batch, device = x.shape[0], x.device
-        cond_drop_prob = self.cond_drop_prob if cond_drop_prob is None else cond_drop_prob
-        
+        cond_drop_prob = (
+            self.cond_drop_prob if cond_drop_prob is None else cond_drop_prob
+        )
+
         # timestep embedding
         temb = get_timestep_embedding(t, self.ch)
         temb = self.temb.dense[0](temb)
@@ -364,18 +370,14 @@ class Conditional_Model(nn.Module):
         # class embedding
         cemb = self.classes_emb(c)
         if cond_drop_prob > 0:
-            keep_mask = prob_mask_like((batch,), 1 - cond_drop_prob, device = device)
-            null_classes_emb = repeat(self.null_classes_emb, 'd -> b d', b = batch)
+            keep_mask = prob_mask_like((batch,), 1 - cond_drop_prob, device=device)
+            null_classes_emb = repeat(self.null_classes_emb, "d -> b d", b=batch)
 
-            cemb = torch.where(
-                rearrange(keep_mask, 'b -> b 1'),
-                cemb,
-                null_classes_emb
-            )
+            cemb = torch.where(rearrange(keep_mask, "b -> b 1"), cemb, null_classes_emb)
         cemb = self.cemb.dense[0](cemb)
         cemb = nonlinearity(cemb)
         cemb = self.cemb.dense[1](cemb)
-        
+
         # downsampling
         hs = [self.conv_in(x)]
         for i_level in range(self.num_resolutions):
@@ -384,7 +386,7 @@ class Conditional_Model(nn.Module):
                 if len(self.down[i_level].attn) > 0:
                     h = self.down[i_level].attn[i_block](h)
                 hs.append(h)
-            if i_level != self.num_resolutions-1:
+            if i_level != self.num_resolutions - 1:
                 hs.append(self.down[i_level].downsample(hs[-1]))
 
         # middle
@@ -395,9 +397,10 @@ class Conditional_Model(nn.Module):
 
         # upsampling
         for i_level in reversed(range(self.num_resolutions)):
-            for i_block in range(self.num_res_blocks+1):
+            for i_block in range(self.num_res_blocks + 1):
                 h = self.up[i_level].block[i_block](
-                    torch.cat([h, hs.pop()], dim=1), temb, cemb)
+                    torch.cat([h, hs.pop()], dim=1), temb, cemb
+                )
                 if len(self.up[i_level].attn) > 0:
                     h = self.up[i_level].attn[i_block](h)
             if i_level != 0:

@@ -1,5 +1,5 @@
-import torch
 import numpy as np
+import torch
 
 
 def append_dims(x, target_dims):
@@ -7,7 +7,9 @@ def append_dims(x, target_dims):
     From https://github.com/crowsonkb/k-diffusion/blob/master/k_diffusion/utils.py"""
     dims_to_append = target_dims - x.ndim
     if dims_to_append < 0:
-        raise ValueError(f'input has {x.ndim} dims but target_dims is {target_dims}, which is less')
+        raise ValueError(
+            f"input has {x.ndim} dims but target_dims is {target_dims}, which is less"
+        )
     return x[(...,) + (None,) * dims_to_append]
 
 
@@ -16,13 +18,9 @@ def renorm_thresholding(x0, value):
     pred_max = x0.max()
     pred_min = x0.min()
     pred_x0 = (x0 - pred_min) / (pred_max - pred_min)  # 0 ... 1
-    pred_x0 = 2 * pred_x0 - 1.  # -1 ... 1
+    pred_x0 = 2 * pred_x0 - 1.0  # -1 ... 1
 
-    s = torch.quantile(
-        rearrange(pred_x0, 'b ... -> b (...)').abs(),
-        value,
-        dim=-1
-    )
+    s = torch.quantile(rearrange(pred_x0, "b ... -> b (...)").abs(), value, dim=-1)
     s.clamp_(min=1.0)
     s = s.view(-1, *((1,) * (pred_x0.ndim - 1)))
 
@@ -30,11 +28,14 @@ def renorm_thresholding(x0, value):
     # pred_x0 = pred_x0.clamp(-s, s) / s  # needs newer pytorch  # TODO bring back to pure-gpu with min/max
 
     # temporary hack: numpy on cpu
-    pred_x0 = np.clip(pred_x0.cpu().numpy(), -s.cpu().numpy(), s.cpu().numpy()) / s.cpu().numpy()
+    pred_x0 = (
+        np.clip(pred_x0.cpu().numpy(), -s.cpu().numpy(), s.cpu().numpy())
+        / s.cpu().numpy()
+    )
     pred_x0 = torch.tensor(pred_x0).to(self.model.device)
 
     # re.renorm
-    pred_x0 = (pred_x0 + 1.) / 2.  # 0 ... 1
+    pred_x0 = (pred_x0 + 1.0) / 2.0  # 0 ... 1
     pred_x0 = (pred_max - pred_min) * pred_x0 + pred_min  # orig range
     return pred_x0
 

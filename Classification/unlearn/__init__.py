@@ -1,15 +1,15 @@
-from .GA import GA, GA_l1
-from .RL import RL
-from .FT import FT, FT_l1
-from .fisher import fisher, fisher_new
-from .retrain import retrain
-from .Wfisher import Wfisher
-from .FT_prune import FT_prune
-from .FT_prune_bi import FT_prune_bi
-from .GA_prune_bi import GA_prune_bi
-from .GA_prune import GA_prune
 from .boundary_ex import boundary_expanding
 from .boundary_sh import boundary_shrink
+from .fisher import fisher, fisher_new
+from .FT import FT, FT_l1
+from .FT_prune import FT_prune
+from .FT_prune_bi import FT_prune_bi
+from .GA import GA, GA_l1
+from .GA_prune import GA_prune
+from .GA_prune_bi import GA_prune_bi
+from .retrain import retrain
+from .RL import RL
+from .Wfisher import Wfisher
 
 
 def raw(data_loaders, model, criterion, args, mask=None):

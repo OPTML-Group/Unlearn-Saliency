@@ -1,16 +1,15 @@
 import os
-import torch
-import torch.optim
-import torch.nn as nn
-import torch.utils.data
 from collections import OrderedDict
 
-import utils
-import unlearn
-import trainer
-import pruner
-
 import arg_parser
+import pruner
+import torch
+import torch.nn as nn
+import torch.optim
+import torch.utils.data
+import trainer
+import unlearn
+import utils
 
 
 def main():
@@ -29,30 +28,43 @@ def main():
     poison_label = args.class_to_replace
     args.class_to_replace = -1
 
-    model, train_loader_full, val_loader, test_loader, marked_loader = utils.setup_model_dataset(
-        args)
+    (
+        model,
+        train_loader_full,
+        val_loader,
+        test_loader,
+        marked_loader,
+    ) = utils.setup_model_dataset(args)
     model.cuda()
 
-    forget_loader, retain_loader = utils.get_unlearn_loader(
-        marked_loader, args)
+    forget_loader, retain_loader = utils.get_unlearn_loader(marked_loader, args)
 
     def poison_func(data, target):
         import numpy as np
+
         poisoned_data = np.copy(data)
         poisoned_target = np.zeros_like(target) + poison_label
-        poisoned_data[:, -2 - args.trigger_size:-
-                      2, -2 - args.trigger_size:-2, :] *= 0
+        poisoned_data[
+            :, -2 - args.trigger_size : -2, -2 - args.trigger_size : -2, :
+        ] *= 0
         # batch_data[:, -2, -2, :] *= 0
         # batch_data[:, -2, -2, :] *= 0
         return poisoned_data, poisoned_target
 
-    poisoned_loader, unpoisoned_loader, poisoned_train_loader, poisoned_test_loader = utils.get_poisoned_loader(
-        forget_loader, retain_loader, test_loader, poison_func, args)
+    (
+        poisoned_loader,
+        unpoisoned_loader,
+        poisoned_train_loader,
+        poisoned_test_loader,
+    ) = utils.get_poisoned_loader(
+        forget_loader, retain_loader, test_loader, poison_func, args
+    )
     unlearn_data_loaders = OrderedDict(
         retain=unpoisoned_loader,
         forget=poisoned_loader,
         val=val_loader,
-        test=test_loader)
+        test=test_loader,
+    )
 
     criterion = nn.CrossEntropyLoss()
     evaluation_result = None
@@ -69,10 +81,10 @@ def main():
 
         if args.mask and os.path.exists(args.mask):
             checkpoint = torch.load(args.mask, map_location=device)
-            if 'state_dict' in checkpoint.keys():
-                checkpoint = checkpoint['state_dict']
+            if "state_dict" in checkpoint.keys():
+                checkpoint = checkpoint["state_dict"]
             model.load_state_dict(checkpoint, strict=False)
-            
+
             """
             current_mask = pruner.extract_mask(checkpoint)
             pruner.prune_model_custom(model, current_mask)
@@ -82,17 +94,20 @@ def main():
             optimizer, scheduler = trainer.get_optimizer_and_scheduler(model, args)
 
             trainer.train_with_rewind(
-                model, optimizer, scheduler, poisoned_train_loader, criterion, args)
+                model, optimizer, scheduler, poisoned_train_loader, criterion, args
+            )
             os.makedirs(os.path.dirname(args.mask), exist_ok=True)
             torch.save(model.state_dict(), args.mask)
 
         # ================================validate before================================
 
         evaluation_result = {}
-        evaluation_result['test_acc'] = trainer.validate(
-            test_loader, model, criterion, args)
-        evaluation_result['attack_acc'] = trainer.validate(
-            poisoned_test_loader, model, criterion, args)
+        evaluation_result["test_acc"] = trainer.validate(
+            test_loader, model, criterion, args
+        )
+        evaluation_result["attack_acc"] = trainer.validate(
+            poisoned_test_loader, model, criterion, args
+        )
 
         # ================================unlearn================================
 
@@ -109,17 +124,19 @@ def main():
 
     # ================================validate after================================
 
-    if 'test_acc_unlearn' not in evaluation_result:
-        evaluation_result['test_acc_unlearn'] = trainer.validate(
-            test_loader, model, criterion, args)
-    if 'attack_acc_unlearn' not in evaluation_result:
-        evaluation_result['attack_acc_unlearn'] = trainer.validate(
-            poisoned_test_loader, model, criterion, args)
+    if "test_acc_unlearn" not in evaluation_result:
+        evaluation_result["test_acc_unlearn"] = trainer.validate(
+            test_loader, model, criterion, args
+        )
+    if "attack_acc_unlearn" not in evaluation_result:
+        evaluation_result["attack_acc_unlearn"] = trainer.validate(
+            poisoned_test_loader, model, criterion, args
+        )
 
     unlearn.save_unlearn_checkpoint(model, evaluation_result, args)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
 
 """

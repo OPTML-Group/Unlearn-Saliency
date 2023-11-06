@@ -1,4 +1,6 @@
-import os, hashlib
+import hashlib
+import os
+
 import requests
 from tqdm import tqdm
 
@@ -53,8 +55,8 @@ def md5_hash(path):
 
 
 def get_ckpt_path(name, root=None, check=False):
-    if 'church_outdoor' in name:
-        name = name.replace('church_outdoor', 'church')
+    if "church_outdoor" in name:
+        name = name.replace("church_outdoor", "church")
     assert name in URL_MAP
     # # Modify the path when necessary
     # cachedir = os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/diffusion-forget/cache"))

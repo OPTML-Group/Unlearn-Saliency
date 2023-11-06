@@ -1,13 +1,14 @@
 import os
+import pathlib
+
 import torch
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as F
-from torchvision.datasets import CIFAR10, STL10, ImageFolder
-from torch.utils.data import DataLoader, ConcatDataset
 from PIL import Image
-import pathlib
-IMAGE_EXTENSIONS = {'bmp', 'jpg', 'jpeg', 'pgm', 'png', 'ppm',
-                    'tif', 'tiff', 'webp'}
+from torch.utils.data import ConcatDataset, DataLoader
+from torchvision.datasets import CIFAR10, STL10, ImageFolder
+
+IMAGE_EXTENSIONS = {"bmp", "jpg", "jpeg", "pgm", "png", "ppm", "tif", "tiff", "webp"}
 
 
 class Crop(object):
@@ -50,9 +51,8 @@ def get_dataset(args, config):
             download=True,
             transform=tran_transform,
         )
-        
+
     elif config.data.dataset == "STL10":
-        
         # for STL10 use both train and test sets due to its small size
         train_dataset = STL10(
             config.data.path,
@@ -67,7 +67,7 @@ def get_dataset(args, config):
             transform=tran_transform,
         )
         dataset = ConcatDataset([train_dataset, test_dataset])
-        
+
     train_loader = DataLoader(
         dataset,
         batch_size=config.training.batch_size,
@@ -84,7 +84,7 @@ def all_but_one_class_path_dataset(config, data_path, label_to_drop):
     ./folder
         - /0
         - /1
-        - /2 
+        - /2
         etc..
     """
     if config.data.random_flip is False:
@@ -107,8 +107,13 @@ def all_but_one_class_path_dataset(config, data_path, label_to_drop):
 
     train_idx = find_indices(train_dataset.targets, label_to_drop)
     train_subset = torch.utils.data.Subset(train_dataset, train_idx)
-    train_loader = torch.utils.data.DataLoader(train_subset, batch_size=config.training.batch_size, shuffle=True, drop_last=False)
-    
+    train_loader = torch.utils.data.DataLoader(
+        train_subset,
+        batch_size=config.training.batch_size,
+        shuffle=True,
+        drop_last=False,
+    )
+
     return train_loader
 
 
@@ -136,9 +141,8 @@ def get_forget_dataset(args, config, label_to_drop):
             download=True,
             transform=tran_transform,
         )
-        
+
     elif config.data.dataset == "STL10":
-        
         # for STL10 use both train and test sets due to its small size
         train_dataset = STL10(
             config.data.path,
@@ -153,17 +157,17 @@ def get_forget_dataset(args, config, label_to_drop):
             transform=tran_transform,
         )
         dataset = ConcatDataset([train_dataset, test_dataset])
-    
+
     data_remain = [data for data in dataset if data[1] != label_to_drop]
     data_forget = [data for data in dataset if data[1] == label_to_drop]
     print(len(data_remain), len(data_forget))
-    
+
     remain_loader = DataLoader(
         data_remain,
         batch_size=config.training.batch_size,
         shuffle=True,
         num_workers=config.data.num_workers,
-    )    
+    )
     forget_loader = DataLoader(
         data_forget,
         batch_size=config.training.batch_size,
@@ -174,7 +178,6 @@ def get_forget_dataset(args, config, label_to_drop):
 
 
 def all_but_one_class_dataset(config, label_to_drop):
-    
     if config.data.random_flip is False:
         tran_transform = transforms.Compose(
             [transforms.Resize(config.data.image_size), transforms.ToTensor()]
@@ -195,12 +198,11 @@ def all_but_one_class_dataset(config, label_to_drop):
             download=True,
             transform=tran_transform,
         )
-        
+
         train_idx = find_indices(train_dataset.targets, label_to_drop)
         dataset = torch.utils.data.Subset(train_dataset, train_idx)
-        
+
     elif config.data.dataset == "STL10":
-        
         # for STL10 use both train and test sets due to its small size
         train_dataset = STL10(
             config.data.path,
@@ -214,7 +216,7 @@ def all_but_one_class_dataset(config, label_to_drop):
             download=True,
             transform=tran_transform,
         )
-        
+
         train_idx = find_indices(train_dataset.labels, label_to_drop)
         train_subset = torch.utils.data.Subset(train_dataset, train_idx)
         test_idx = find_indices(test_dataset.labels, label_to_drop)
@@ -227,7 +229,7 @@ def all_but_one_class_dataset(config, label_to_drop):
         shuffle=True,
         num_workers=config.data.num_workers,
     )
-    
+
     return train_loader
 
 
@@ -268,28 +270,29 @@ def inverse_data_transform(config, X):
 class ImagePathDataset(torch.utils.data.Dataset):
     def __init__(self, img_folder, transforms=None, n=None):
         self.transforms = transforms
-        
+
         path = pathlib.Path(img_folder)
-        self.files = sorted([file for ext in IMAGE_EXTENSIONS
-                       for file in path.glob('*.{}'.format(ext))])
-        
+        self.files = sorted(
+            [file for ext in IMAGE_EXTENSIONS for file in path.glob("*.{}".format(ext))]
+        )
+
         assert n is None or n <= len(self.files)
         self.n = len(self.files) if n is None else n
-        
+
     def __len__(self):
         return self.n
 
     def __getitem__(self, i):
         path = self.files[i]
-        img = Image.open(path).convert('RGB')
+        img = Image.open(path).convert("RGB")
         if self.transforms is not None:
             img = self.transforms(img)
         return img
-    
-    
+
+
 def find_indices(lst, condition):
     return [i for i, elem in enumerate(lst) if elem != condition]
-    
-    
+
+
 def find_forget_indices(lst, condition):
     return [i for i, elem in enumerate(lst) if elem == condition]

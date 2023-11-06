@@ -1,5 +1,5 @@
-from PIL import Image, ImageDraw
 import numpy as np
+from PIL import Image, ImageDraw
 
 settings = {
     "256narrow": {
@@ -26,30 +26,30 @@ settings = {
         "max_s_box": 150,
         "marg": 10,
     },
-    "512train": {    # TODO: experimental
-            "p_irr": 0.5,
-            "min_n_irr": 1,
-            "max_n_irr": 5,
-            "max_l_irr": 450,
-            "max_w_irr": 250,
-            "min_n_box": 1,
-            "max_n_box": 4,
-            "min_s_box": 30,
-            "max_s_box": 300,
-            "marg": 10,
-        },
-    "512train-large": {    # TODO: experimental
-            "p_irr": 0.5,
-            "min_n_irr": 1,
-            "max_n_irr": 5,
-            "max_l_irr": 450,
-            "max_w_irr": 400,
-            "min_n_box": 1,
-            "max_n_box": 4,
-            "min_s_box": 75,
-            "max_s_box": 450,
-            "marg": 10,
-        },
+    "512train": {  # TODO: experimental
+        "p_irr": 0.5,
+        "min_n_irr": 1,
+        "max_n_irr": 5,
+        "max_l_irr": 450,
+        "max_w_irr": 250,
+        "min_n_box": 1,
+        "max_n_box": 4,
+        "min_s_box": 30,
+        "max_s_box": 300,
+        "marg": 10,
+    },
+    "512train-large": {  # TODO: experimental
+        "p_irr": 0.5,
+        "min_n_irr": 1,
+        "max_n_irr": 5,
+        "max_l_irr": 450,
+        "max_w_irr": 400,
+        "min_n_box": 1,
+        "max_n_box": 4,
+        "min_s_box": 75,
+        "max_s_box": 450,
+        "marg": 10,
+    },
 }
 
 
@@ -65,7 +65,7 @@ def gen_segment_mask(mask, start, end, brush_width):
 
 def gen_box_mask(mask, masked):
     x_0, y_0, w, h = masked
-    mask[y_0:y_0 + h, x_0:x_0 + w] = 1
+    mask[y_0 : y_0 + h, x_0 : x_0 + w] = 1
     return mask
 
 
@@ -82,9 +82,21 @@ def gen_round_mask(mask, masked, radius):
     return mask
 
 
-def gen_large_mask(prng, img_h, img_w,
-                   marg, p_irr, min_n_irr, max_n_irr, max_l_irr, max_w_irr,
-                   min_n_box, max_n_box, min_s_box, max_s_box):
+def gen_large_mask(
+    prng,
+    img_h,
+    img_w,
+    marg,
+    p_irr,
+    min_n_irr,
+    max_n_irr,
+    max_l_irr,
+    max_w_irr,
+    min_n_box,
+    max_n_box,
+    min_s_box,
+    max_s_box,
+):
     """
     img_h: int, an image height
     img_w: int, an image width
@@ -129,7 +141,9 @@ def gen_large_mask(prng, img_h, img_w,
             h = uniform(min_s_box, max_s_box)  # sample box shape
             w = uniform(min_s_box, max_s_box)
 
-            x_0 = uniform(marg, img_w - marg - w)  # sample upper-left coordinates of box
+            x_0 = uniform(
+                marg, img_w - marg - w
+            )  # sample upper-left coordinates of box
             y_0 = uniform(marg, img_h - marg - h)
 
             if np.random.uniform(0, 1) < 0.5:
@@ -141,16 +155,22 @@ def gen_large_mask(prng, img_h, img_w,
 
 
 make_lama_mask = lambda prng, h, w: gen_large_mask(prng, h, w, **settings["256train"])
-make_narrow_lama_mask = lambda prng, h, w: gen_large_mask(prng, h, w, **settings["256narrow"])
-make_512_lama_mask = lambda prng, h, w: gen_large_mask(prng, h, w, **settings["512train"])
-make_512_lama_mask_large = lambda prng, h, w: gen_large_mask(prng, h, w, **settings["512train-large"])
+make_narrow_lama_mask = lambda prng, h, w: gen_large_mask(
+    prng, h, w, **settings["256narrow"]
+)
+make_512_lama_mask = lambda prng, h, w: gen_large_mask(
+    prng, h, w, **settings["512train"]
+)
+make_512_lama_mask_large = lambda prng, h, w: gen_large_mask(
+    prng, h, w, **settings["512train-large"]
+)
 
 
 MASK_MODES = {
     "256train": make_lama_mask,
     "256narrow": make_narrow_lama_mask,
     "512train": make_512_lama_mask,
-    "512train-large": make_512_lama_mask_large
+    "512train-large": make_512_lama_mask_large,
 }
 
 if __name__ == "__main__":

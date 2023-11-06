@@ -1,11 +1,12 @@
 import argparse
+
 import torch
-import torchvision
-import torchvision.transforms as transforms
 import torch.nn as nn
 import torch.optim as optim
+import torchvision
+import torchvision.transforms as transforms
+from torch.utils.data import ConcatDataset, DataLoader
 from torchvision.datasets import CIFAR10, STL10
-from torch.utils.data import DataLoader, ConcatDataset
 
 
 def get_dataset(args):
@@ -18,7 +19,7 @@ def get_dataset(args):
             transforms.Resize((224, 224)),
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
         ]
     )
 
@@ -35,9 +36,8 @@ def get_dataset(args):
             download=True,
             transform=transform,
         )
-        
+
     elif args.dataset == "stl10":
-        
         # for STL10 use both train and test sets due to its small size
         train_dataset = STL10(
             args.data_path,
@@ -52,8 +52,10 @@ def get_dataset(args):
             transform=transform,
         )
         dataset = ConcatDataset([train_dataset, test_dataset])
-        train_dataset, test_dataset = torch.utils.data.random_split(dataset, [12000, 1000])
-        
+        train_dataset, test_dataset = torch.utils.data.random_split(
+            dataset, [12000, 1000]
+        )
+
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
@@ -64,7 +66,7 @@ def get_dataset(args):
         batch_size=args.batch_size,
         shuffle=True,
     )
-    
+
     return train_loader, test_loader
 
 
@@ -75,13 +77,15 @@ def get_dataset_image_folder(args):
             transforms.Resize((224, 224)),
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
         ]
     )
-    
+
     dataset = torchvision.datasets.ImageFolder(args.data_path, transform=transform)
     print(len(dataset))
-    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [int(0.9*len(dataset)), int(0.1*len(dataset))])
+    train_dataset, test_dataset = torch.utils.data.random_split(
+        dataset, [int(0.9 * len(dataset)), int(0.1 * len(dataset))]
+    )
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
@@ -92,39 +96,32 @@ def get_dataset_image_folder(args):
         batch_size=args.batch_size,
         shuffle=True,
     )
-    
+
     return train_loader, test_loader
 
 
 def parse_args():
-    
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--dataset", choices=["cifar10", "stl10"], help="Dataset type"
-    )
+    parser.add_argument("--dataset", choices=["cifar10", "stl10"], help="Dataset type")
     parser.add_argument(
         "--data_path", type=str, default="./data", help="Path to dataset"
     )
+    parser.add_argument("--lr", type=float, default=1e-5, help="Learning rate")
+    parser.add_argument("--batch_size", type=int, default=128, help="Batch size")
     parser.add_argument(
-        "--lr", type=float, default=1e-5, help="Learning rate"
+        "--freeze_layers",
+        type=bool,
+        default=False,
+        help="Freeze the convolution layers or not",
     )
-    parser.add_argument(
-        "--batch_size", type=int, default=128, help="Batch size"
-    )
-    parser.add_argument(
-        "--freeze_layers", type=bool, default=False, help="Freeze the convolution layers or not"
-    )
-    parser.add_argument(
-        "--n_epochs", type=int, default=10, help="Number of epochs"
-    )
+    parser.add_argument("--n_epochs", type=int, default=10, help="Number of epochs")
     args = parser.parse_args()
     return args
 
 
 if __name__ == "__main__":
-    
     args = parse_args()
-    
+
     model = torchvision.models.resnet34(pretrained=True)
 
     # Freeze all layers except the final layer
@@ -132,22 +129,28 @@ if __name__ == "__main__":
         for param in model.parameters():
             param.requires_grad = False
         model.fc.requires_grad = True
-    
+
     num_ftrs = model.fc.in_features
     model.fc = nn.Linear(num_ftrs, 10)
     torch.nn.init.xavier_uniform_(model.fc.weight)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
-    
+
     criterion = nn.CrossEntropyLoss()
     weight_decay = 5e-4
 
     # params_1x are the parameters of the network body, i.e., of all layers except the FC layers
-    params_1x = [param for name, param in model.named_parameters() if 'fc' not in str(name)]
-    optimizer = torch.optim.Adam([{'params':params_1x}, {'params': model.fc.parameters(), 'lr': args.lr*10}], lr=args.lr, weight_decay=weight_decay)
-    
+    params_1x = [
+        param for name, param in model.named_parameters() if "fc" not in str(name)
+    ]
+    optimizer = torch.optim.Adam(
+        [{"params": params_1x}, {"params": model.fc.parameters(), "lr": args.lr * 10}],
+        lr=args.lr,
+        weight_decay=weight_decay,
+    )
+
     train_loader, test_loader = get_dataset(args)
-    
+
     # Train the model
     for epoch in range(args.n_epochs):
         running_loss = 0.0
@@ -157,7 +160,7 @@ if __name__ == "__main__":
             inputs, labels = data
             inputs = inputs.to(device)
             labels = labels.to(device)
-            
+
             # Zero the parameter gradients
             optimizer.zero_grad()
 
@@ -169,9 +172,8 @@ if __name__ == "__main__":
 
             # Print statistics
             running_loss += loss.item()
-            if (i+1) % 100 == 0:
-                print('[%d, %5d] loss: %.3f' %
-                    (epoch + 1, i + 1, running_loss / 100))
+            if (i + 1) % 100 == 0:
+                print("[%d, %5d] loss: %.3f" % (epoch + 1, i + 1, running_loss / 100))
                 running_loss = 0.0
 
         # Evaluate the model on the test set
@@ -189,8 +191,10 @@ if __name__ == "__main__":
                 correct += (predicted == labels).sum().item()
 
         # Print the accuracy on the test set
-        print('Accuracy on the test set after epoch %d: %d %%' % 
-            (epoch+1, 100 * correct / total))
+        print(
+            "Accuracy on the test set after epoch %d: %d %%"
+            % (epoch + 1, 100 * correct / total)
+        )
 
-    print('Finished fine-tuning')
+    print("Finished fine-tuning")
     torch.save(model.state_dict(), f"{args.dataset}_resnet34.pth")

@@ -1,7 +1,8 @@
+import errno
+import hashlib
 import os
 import os.path
-import hashlib
-import errno
+
 from torch.utils.model_zoo import tqdm
 
 
@@ -23,9 +24,9 @@ def check_integrity(fpath, md5=None):
     if not os.path.isfile(fpath):
         return False
     md5o = hashlib.md5()
-    with open(fpath, 'rb') as f:
+    with open(fpath, "rb") as f:
         # read in 1MB chunks
-        for chunk in iter(lambda: f.read(1024 * 1024), b''):
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
             md5o.update(chunk)
     md5c = md5o.hexdigest()
     if md5c != md5:
@@ -66,23 +67,19 @@ def download_url(url, root, filename=None, md5=None):
 
     # downloads file
     if os.path.isfile(fpath) and check_integrity(fpath, md5):
-        print('Using downloaded and verified file: ' + fpath)
+        print("Using downloaded and verified file: " + fpath)
     else:
         try:
-            print('Downloading ' + url + ' to ' + fpath)
-            urllib.request.urlretrieve(
-                url, fpath,
-                reporthook=gen_bar_updater()
-            )
+            print("Downloading " + url + " to " + fpath)
+            urllib.request.urlretrieve(url, fpath, reporthook=gen_bar_updater())
         except OSError:
-            if url[:5] == 'https':
-                url = url.replace('https:', 'http:')
-                print('Failed download. Trying https -> http instead.'
-                      ' Downloading ' + url + ' to ' + fpath)
-                urllib.request.urlretrieve(
-                    url, fpath,
-                    reporthook=gen_bar_updater()
+            if url[:5] == "https":
+                url = url.replace("https:", "http:")
+                print(
+                    "Failed download. Trying https -> http instead."
+                    " Downloading " + url + " to " + fpath
                 )
+                urllib.request.urlretrieve(url, fpath, reporthook=gen_bar_updater())
 
 
 def list_dir(root, prefix=False):
@@ -95,10 +92,7 @@ def list_dir(root, prefix=False):
     """
     root = os.path.expanduser(root)
     directories = list(
-        filter(
-            lambda p: os.path.isdir(os.path.join(root, p)),
-            os.listdir(root)
-        )
+        filter(lambda p: os.path.isdir(os.path.join(root, p)), os.listdir(root))
     )
 
     if prefix is True:
@@ -121,7 +115,7 @@ def list_files(root, suffix, prefix=False):
     files = list(
         filter(
             lambda p: os.path.isfile(os.path.join(root, p)) and p.endswith(suffix),
-            os.listdir(root)
+            os.listdir(root),
         )
     )
 
@@ -142,6 +136,7 @@ def download_file_from_google_drive(file_id, root, filename=None, md5=None):
     """
     # Based on https://stackoverflow.com/questions/38511444/python-download-files-from-google-drive-using-url
     import requests
+
     url = "https://docs.google.com/uc?export=download"
 
     root = os.path.expanduser(root)
@@ -152,15 +147,15 @@ def download_file_from_google_drive(file_id, root, filename=None, md5=None):
     makedir_exist_ok(root)
 
     if os.path.isfile(fpath) and check_integrity(fpath, md5):
-        print('Using downloaded and verified file: ' + fpath)
+        print("Using downloaded and verified file: " + fpath)
     else:
         session = requests.Session()
 
-        response = session.get(url, params={'id': file_id}, stream=True)
+        response = session.get(url, params={"id": file_id}, stream=True)
         token = _get_confirm_token(response)
 
         if token:
-            params = {'id': file_id, 'confirm': token}
+            params = {"id": file_id, "confirm": token}
             response = session.get(url, params=params, stream=True)
 
         _save_response_content(response, fpath)
@@ -168,7 +163,7 @@ def download_file_from_google_drive(file_id, root, filename=None, md5=None):
 
 def _get_confirm_token(response):
     for key, value in response.cookies.items():
-        if key.startswith('download_warning'):
+        if key.startswith("download_warning"):
             return value
 
     return None

@@ -9,10 +9,11 @@ import torch
 import torch.nn.functional as F
 from torch.autograd import Variable
 
+
 def gaussian(window_size, sigma):
     gauss = torch.Tensor(
         [
-            exp(-((x - window_size // 2) ** 2) / float(2 * sigma ** 2))
+            exp(-((x - window_size // 2) ** 2) / float(2 * sigma**2))
             for x in range(window_size)
         ]
     )
@@ -28,9 +29,7 @@ def create_window(window_size, channel):
     return window
 
 
-def _ssim(
-    img1, img2, window, window_size, channel, mask=None, size_average=True
-):
+def _ssim(img1, img2, window, window_size, channel, mask=None, size_average=True):
     mu1 = F.conv2d(img1, window, padding=window_size // 2, groups=channel)
     mu2 = F.conv2d(img2, window, padding=window_size // 2, groups=channel)
 
@@ -39,12 +38,10 @@ def _ssim(
     mu1_mu2 = mu1 * mu2
 
     sigma1_sq = (
-        F.conv2d(img1 * img1, window, padding=window_size // 2, groups=channel)
-        - mu1_sq
+        F.conv2d(img1 * img1, window, padding=window_size // 2, groups=channel) - mu1_sq
     )
     sigma2_sq = (
-        F.conv2d(img2 * img2, window, padding=window_size // 2, groups=channel)
-        - mu2_sq
+        F.conv2d(img2 * img2, window, padding=window_size // 2, groups=channel) - mu2_sq
     )
     sigma12 = (
         F.conv2d(img1 * img2, window, padding=window_size // 2, groups=channel)
@@ -61,9 +58,9 @@ def _ssim(
     if not (mask is None):
         b = mask.size(0)
         ssim_map = ssim_map.mean(dim=1, keepdim=True) * mask
-        ssim_map = ssim_map.view(b, -1).sum(dim=1) / mask.view(b, -1).sum(
-            dim=1
-        ).clamp(min=1)
+        ssim_map = ssim_map.view(b, -1).sum(dim=1) / mask.view(b, -1).sum(dim=1).clamp(
+            min=1
+        )
         return ssim_map
 
     import pdb
@@ -87,10 +84,7 @@ class SSIM(torch.nn.Module):
     def forward(self, img1, img2, mask=None):
         (_, channel, _, _) = img1.size()
 
-        if (
-            channel == self.channel
-            and self.window.data.type() == img1.data.type()
-        ):
+        if channel == self.channel and self.window.data.type() == img1.data.type():
             window = self.window
         else:
             window = create_window(self.window_size, channel)

@@ -1,9 +1,12 @@
-import torch
 import time
 from copy import deepcopy
-import utils
-from .impl import iterative_unlearn
+
 import numpy as np
+import torch
+import utils
+
+from .impl import iterative_unlearn
+
 
 @iterative_unlearn
 def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
@@ -11,13 +14,19 @@ def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
     retain_loader = data_loaders["retain"]
     forget_dataset = deepcopy(forget_loader.dataset)
     if args.dataset == "cifar10":
-        forget_dataset.targets = np.random.randint(0, args.num_classes, forget_dataset.targets.shape)
+        forget_dataset.targets = np.random.randint(
+            0, args.num_classes, forget_dataset.targets.shape
+        )
     elif args.dataset == "svhn":
-        forget_dataset.labels = np.random.randint(0, args.num_classes, forget_dataset.labels.shape)
-    
+        forget_dataset.labels = np.random.randint(
+            0, args.num_classes, forget_dataset.labels.shape
+        )
+
     retain_dataset = retain_loader.dataset
-    train_dataset = torch.utils.data.ConcatDataset([forget_dataset,retain_dataset])
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    train_dataset = torch.utils.data.ConcatDataset([forget_dataset, retain_dataset])
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset, batch_size=args.batch_size, shuffle=True
+    )
     losses = utils.AverageMeter()
     top1 = utils.AverageMeter()
 
@@ -28,8 +37,7 @@ def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
     loader_len = len(forget_loader) + len(retain_loader)
 
     if epoch < args.warmup:
-        utils.warmup_lr(epoch, i+1, optimizer,
-                        one_epoch_step=loader_len, args=args)
+        utils.warmup_lr(epoch, i + 1, optimizer, one_epoch_step=loader_len, args=args)
 
     # for i, (image, target) in enumerate(forget_loader):
     #     image = image.cuda()
@@ -70,13 +78,13 @@ def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
 
         optimizer.zero_grad()
         loss.backward()
-        
+
         if mask:
             for name, param in model.named_parameters():
                 if param.grad is not None:
                     param.grad *= mask[name]
                     # print(mask[name])
-        
+
         optimizer.step()
 
         output = output_clean.float()
@@ -89,12 +97,14 @@ def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
 
         if (i + 1) % args.print_freq == 0:
             end = time.time()
-            print('Epoch: [{0}][{1}/{2}]\t'
-                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Accuracy {top1.val:.3f} ({top1.avg:.3f})\t'
-                  'Time {3:.2f}'.format(
-                      epoch, i, loader_len, end-start, loss=losses, top1=top1))
+            print(
+                "Epoch: [{0}][{1}/{2}]\t"
+                "Loss {loss.val:.4f} ({loss.avg:.4f})\t"
+                "Accuracy {top1.val:.3f} ({top1.avg:.3f})\t"
+                "Time {3:.2f}".format(
+                    epoch, i, loader_len, end - start, loss=losses, top1=top1
+                )
+            )
             start = time.time()
-
 
     return top1.avg

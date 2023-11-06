@@ -1,9 +1,11 @@
+import copy
 import time
+
 import torch
 import torch.nn as nn
 import utils
+
 from .impl import iterative_unlearn
-import copy
 
 
 def discretize(x):
@@ -27,11 +29,13 @@ def FGSM_perturb(x, y, model=None, bound=None, criterion=None):
 
 
 @iterative_unlearn
-def boundary_shrink_iter(data_loaders, model, criterion, optimizer, epoch, args, mask=None, test_model=None):
+def boundary_shrink_iter(
+    data_loaders, model, criterion, optimizer, epoch, args, mask=None, test_model=None
+):
     assert test_model is not None
 
-    bound = 0.1 # hard coding in the paper
-    
+    bound = 0.1  # hard coding in the paper
+
     train_loader = data_loaders["forget"]
     print(len(train_loader))
     losses = utils.AverageMeter()
@@ -43,16 +47,18 @@ def boundary_shrink_iter(data_loaders, model, criterion, optimizer, epoch, args,
     start = time.time()
 
     for i, (image, target) in enumerate(train_loader):
-
         if epoch < args.warmup:
-            utils.warmup_lr(epoch, i+1, optimizer,
-                            one_epoch_step=len(train_loader), args=args)
+            utils.warmup_lr(
+                epoch, i + 1, optimizer, one_epoch_step=len(train_loader), args=args
+            )
 
         image = image.cuda()
         target = target.cuda()
 
         test_model.eval()
-        image_adv = FGSM_perturb(image, target, model=test_model, bound=bound, criterion=criterion)
+        image_adv = FGSM_perturb(
+            image, target, model=test_model, bound=bound, criterion=criterion
+        )
 
         adv_outputs = test_model(image_adv)
         adv_label = torch.argmax(adv_outputs, dim=1)
@@ -63,13 +69,13 @@ def boundary_shrink_iter(data_loaders, model, criterion, optimizer, epoch, args,
 
         optimizer.zero_grad()
         loss.backward()
-        
+
         if mask:
             for name, param in model.named_parameters():
                 if param.grad is not None:
                     param.grad *= mask[name]
                     # print(mask[name])
-        
+
         optimizer.step()
 
         output = output_clean.float()
@@ -82,14 +88,17 @@ def boundary_shrink_iter(data_loaders, model, criterion, optimizer, epoch, args,
 
         if (i + 1) % args.print_freq == 0:
             end = time.time()
-            print('Epoch: [{0}][{1}/{2}]\t'
-                'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                'Accuracy {top1.val:.3f} ({top1.avg:.3f})\t'
-                'Time {3:.2f}'.format(
-                    epoch, i, len(train_loader), end-start, loss=losses, top1=top1))
+            print(
+                "Epoch: [{0}][{1}/{2}]\t"
+                "Loss {loss.val:.4f} ({loss.avg:.4f})\t"
+                "Accuracy {top1.val:.3f} ({top1.avg:.3f})\t"
+                "Time {3:.2f}".format(
+                    epoch, i, len(train_loader), end - start, loss=losses, top1=top1
+                )
+            )
             start = time.time()
 
-    print('train_accuracy {top1.avg:.3f}'.format(top1=top1))
+    print("train_accuracy {top1.avg:.3f}".format(top1=top1))
 
     return top1.avg
 
@@ -97,4 +106,6 @@ def boundary_shrink_iter(data_loaders, model, criterion, optimizer, epoch, args,
 def boundary_shrink(data_loaders, model: nn.Module, criterion, args, mask=None):
     device = model.parameters().__next__().device
     test_model = copy.deepcopy(model).to(device)
-    return boundary_shrink_iter(data_loaders, model, criterion, args, mask, test_model=test_model)
+    return boundary_shrink_iter(
+        data_loaders, model, criterion, args, mask, test_model=test_model
+    )

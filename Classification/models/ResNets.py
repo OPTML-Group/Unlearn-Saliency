@@ -1,4 +1,4 @@
-'''
+"""
 Properly implemented ResNet-s for CIFAR10 as described in paper [1].
 The implementation and structure of this file is hugely influenced by [2]
 which is implemented for ImageNet and doesn't have option A for identity.
@@ -21,18 +21,23 @@ Reference:
 If you use this implementation in you work, please don't forget to mention the
 author, Yerlan Idelbayev.
 Borrow from : https://github.com/akamaster/pytorch_resnet_cifar10.git
-'''
+"""
 
 import torch
 import torch.nn as nn
-import torch.nn.init as init
 import torch.nn.functional as F
-
+import torch.nn.init as init
 from torch.autograd import Variable
 
-
-__all__ = ['ResNets', 'resnet20s', 'resnet32s',
-           'resnet44s', 'resnet56s', 'resnet110s', 'resnet1202s']
+__all__ = [
+    "ResNets",
+    "resnet20s",
+    "resnet32s",
+    "resnet44s",
+    "resnet56s",
+    "resnet110s",
+    "resnet1202s",
+]
 
 
 class NormalizeByChannelMeanStd(torch.nn.Module):
@@ -49,7 +54,7 @@ class NormalizeByChannelMeanStd(torch.nn.Module):
         return self.normalize_fn(tensor, self.mean, self.std)
 
     def extra_repr(self):
-        return 'mean={}, std={}'.format(self.mean, self.std)
+        return "mean={}, std={}".format(self.mean, self.std)
 
     def normalize_fn(self, tensor, mean, std):
         """Differentiable version of torchvision.functional.normalize"""
@@ -78,28 +83,41 @@ class LambdaLayer(nn.Module):
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, in_planes, planes, stride=1, option='A'):
+    def __init__(self, in_planes, planes, stride=1, option="A"):
         super(BasicBlock, self).__init__()
         self.conv1 = nn.Conv2d(
-            in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
+            in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False
+        )
         self.bn1 = nn.BatchNorm2d(planes)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3,
-                               stride=1, padding=1, bias=False)
+        self.conv2 = nn.Conv2d(
+            planes, planes, kernel_size=3, stride=1, padding=1, bias=False
+        )
         self.bn2 = nn.BatchNorm2d(planes)
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != planes:
-            if option == 'A':
+            if option == "A":
                 """
                 For CIFAR10 ResNet paper uses option A.
                 """
-                self.shortcut = LambdaLayer(lambda x:
-                                            F.pad(x[:, :, ::2, ::2], (0, 0, 0, 0, planes//4, planes//4), "constant", 0))
-            elif option == 'B':
+                self.shortcut = LambdaLayer(
+                    lambda x: F.pad(
+                        x[:, :, ::2, ::2],
+                        (0, 0, 0, 0, planes // 4, planes // 4),
+                        "constant",
+                        0,
+                    )
+                )
+            elif option == "B":
                 self.shortcut = nn.Sequential(
-                    nn.Conv2d(in_planes, self.expansion * planes,
-                              kernel_size=1, stride=stride, bias=False),
-                    nn.BatchNorm2d(self.expansion * planes)
+                    nn.Conv2d(
+                        in_planes,
+                        self.expansion * planes,
+                        kernel_size=1,
+                        stride=stride,
+                        bias=False,
+                    ),
+                    nn.BatchNorm2d(self.expansion * planes),
                 )
 
     def forward(self, x):
@@ -115,12 +133,12 @@ class ResNets(nn.Module):
         super(ResNets, self).__init__()
         self.in_planes = 16
 
-        print('The normalize layer is contained in the network')
+        print("The normalize layer is contained in the network")
         self.normalize = NormalizeByChannelMeanStd(
-            mean=[0.4914, 0.4822, 0.4465], std=[0.2470, 0.2435, 0.2616])
+            mean=[0.4914, 0.4822, 0.4465], std=[0.2470, 0.2435, 0.2616]
+        )
 
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=3,
-                               stride=1, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(16)
         self.layer1 = self._make_layer(block, 16, num_blocks[0], stride=1)
         self.layer2 = self._make_layer(block, 32, num_blocks[1], stride=2)
@@ -130,7 +148,7 @@ class ResNets(nn.Module):
         self.apply(_weights_init)
 
     def _make_layer(self, block, planes, num_blocks, stride):
-        strides = [stride] + [1]*(num_blocks-1)
+        strides = [stride] + [1] * (num_blocks - 1)
         layers = []
         for stride in strides:
             layers.append(block(self.in_planes, planes, stride))

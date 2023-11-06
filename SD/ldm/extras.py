@@ -1,12 +1,11 @@
+import logging
+from contextlib import contextmanager
 from pathlib import Path
-from omegaconf import OmegaConf
+
 import torch
 from ldm.util import instantiate_from_config
-import logging
-from contextlib import contextmanager
+from omegaconf import OmegaConf
 
-from contextlib import contextmanager
-import logging
 
 @contextmanager
 def all_logging_disabled(highest_level=logging.CRITICAL):
@@ -34,6 +33,7 @@ def all_logging_disabled(highest_level=logging.CRITICAL):
     finally:
         logging.disable(previous_level)
 
+
 def load_training_dir(train_dir, device, epoch="last"):
     """Load a checkpoint and config from training directory"""
     train_dir = Path(train_dir)
@@ -48,9 +48,9 @@ def load_training_dir(train_dir, device, epoch="last"):
     else:
         config = config[0]
 
-
     config = OmegaConf.load(config)
     return load_model_from_config(config, ckpt[0], device)
+
 
 def load_model_from_config(config, ckpt, device="cpu", verbose=False):
     """Loads a model from config and a ckpt

@@ -1,7 +1,9 @@
-import numpy as np
 import random
 import string
+
+import numpy as np
 from torch.utils.data import Dataset, Subset
+
 
 class DummyData(Dataset):
     def __init__(self, length, size):
@@ -14,7 +16,7 @@ class DummyData(Dataset):
     def __getitem__(self, i):
         x = np.random.randn(*self.size)
         letters = string.ascii_lowercase
-        y = ''.join(random.choice(string.ascii_lowercase) for i in range(10))
+        y = "".join(random.choice(string.ascii_lowercase) for i in range(10))
         return {"jpg": x, "txt": y}
 
 
@@ -31,4 +33,3 @@ class DummyDataWithEmbeddings(Dataset):
         x = np.random.randn(*self.size)
         y = np.random.randn(*self.emb_size).astype(np.float32)
         return {"jpg": x, "txt": y}
-
