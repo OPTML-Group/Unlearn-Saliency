@@ -492,7 +492,7 @@ class Diffusion(object):
                 self.sample_visualization(test_model, step, args.cond_scale)
                 del test_model
 
-    def natural_forget(self):
+    def saliency_unlearn(self):
         args, config = self.args, self.config
 
         D_remain_loader, D_forget_loader = get_forget_dataset(
@@ -549,7 +549,8 @@ class Diffusion(object):
             )
 
             # forget stage
-            forget_x, forget_c = next(D_forget_iter)
+            forget_x, forget_c, pseudo_c = next(D_forget_iter)
+
             n = forget_x.size(0)
             forget_x = forget_x.to(self.device)
             forget_x = data_transform(self.config, forget_x)
@@ -561,34 +562,25 @@ class Diffusion(object):
             )
             t = torch.cat([t, self.num_timesteps - t - 1], dim=0)[:n]
 
-            a = (1 - b).cumprod(dim=0).index_select(0, t).view(-1, 1, 1, 1)
-            forget_x = forget_x * a.sqrt() + e * (1.0 - a).sqrt()
-
-            output = model(forget_x, t.float(), forget_c, mode="train")
-
-            if args.method == "rl":
-                random_c = torch.randint(
-                    low=1,
-                    high=config.data.n_classes,
-                    size=forget_c.shape,
-                    device=forget_c.device,
+            if args.method == "ga":
+                forget_loss = -loss_registry_conditional[config.model.type](
+                    model, forget_x, t, forget_c, e, b
                 )
-                pseudo = model(forget_x, t.float(), random_c, mode="train").detach()
-                forget_loss = criteria(pseudo, output)
-            elif args.method == "ri":
-                remain_x = remain_x * a.sqrt() + e * (1.0 - a).sqrt()
-                pseudo = model(remain_x, t.float(), forget_c, mode="train").detach()
-                forget_loss = criteria(pseudo, output)
 
-            if args.sparse == True:
+            else:
+                a = (1 - b).cumprod(dim=0).index_select(0, t).view(-1, 1, 1, 1)
+                forget_x = forget_x * a.sqrt() + e * (1.0 - a).sqrt()
 
-                def l1_regularization(model):
-                    loss = 0
-                    for param in model.parameters():
-                        loss += torch.linalg.norm(param.view(-1), ord=1)
-                    return loss
+                output = model(forget_x, t.float(), forget_c, mode="train")
 
-                remain_loss = remain_loss + l1_regularization(model)
+                if args.method == "rl":
+                    pseudo_c = torch.full(
+                        forget_c.shape,
+                        (args.label_to_forget + 1) % 10,
+                        device=forget_c.device,
+                    )
+                    pseudo = model(forget_x, t.float(), pseudo_c, mode="train").detach()
+                    forget_loss = criteria(pseudo, output)
 
             loss = forget_loss + args.alpha * remain_loss
 
@@ -642,9 +634,6 @@ class Diffusion(object):
     def train_esd(self):
         args, config = self.args, self.config
 
-        devices = "0,1"
-        devices = [f"cuda:{int(d.strip())}" for d in devices.split(",")]
-
         print("Loading checkpoints {}".format(args.ckpt_folder))
 
         states = torch.load(
@@ -656,12 +645,10 @@ class Diffusion(object):
         for key, value in states[0].items():
             new_states[key.replace("module.", "")] = value
 
-        model = Conditional_Model(config).to(devices[0])
-        # model = torch.nn.DataParallel(model)
+        model = Conditional_Model(config).to(self.device)
         model.load_state_dict(new_states, strict=True)
 
-        model_orig = Conditional_Model(config).to(devices[1])
-        # model_orig = torch.nn.DataParallel(model_orig)
+        model_orig = Conditional_Model(config).to(self.device)
         model_orig.load_state_dict(new_states, strict=True)
 
         criteria = torch.nn.MSELoss()
@@ -673,62 +660,42 @@ class Diffusion(object):
         else:
             ema_helper = None
 
-        start = time.time()
-        c = torch.tensor([args.label_to_forget])
-        n = 1
+        ddim_steps = 50
+        c = torch.tensor([args.label_to_forget]).to(self.device)
 
-        for step in range(0, self.config.training.n_iters):
+        for step in tqdm.tqdm(range(0, 10000)):
             model.train()
+            t_enc = random.randint(0, 50)
 
-            # antithetic sampling
-            t = torch.randint(low=0, high=self.num_timesteps, size=(n // 2 + 1,)).to(
-                devices[0]
-            )
-            t = torch.cat([t, self.num_timesteps - t - 1], dim=0)[:n]
-            e = torch.randn((1, 3, 32, 32)).to(devices[0])
+            og_num = round((int(t_enc) / ddim_steps) * 1000)
+            og_num_lim = round((int(t_enc + 1) / ddim_steps) * 1000)
+            t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=self.device)
+
+            e = torch.randn((1, 3, 32, 32)).to(self.device)
 
             with torch.no_grad():
                 # https://github.com/clear-nus/selective-amnesia/blob/a7a27ab573ba3be77af9e7aae4a3095da9b136ac/ddpm/runners/diffusion.py#L451
 
-                x = self.sample_image(e, model, c.to(devices[0]), args.cond_scale)
+                skip = self.num_timesteps // self.args.timesteps
+                seq = range(0, t_enc, skip)
+                x = generalized_steps_conditional(
+                    e, c, seq, model, self.betas, args.cond_scale, eta=self.args.eta
+                )[0][int(t_enc)].to(self.device)
+
                 e_0 = model_orig.forward(
-                    x.to(devices[1]),
-                    t.float().to(devices[1]),
-                    c.to(devices[1]),
-                    cond_drop_prob=1.0,
-                    mode="train",
+                    x, t_enc_ddpm, c, cond_drop_prob=1.0, mode="train"
                 )
                 e_p = model_orig.forward(
-                    x.to(devices[1]),
-                    t.float().to(devices[1]),
-                    c.to(devices[1]),
-                    cond_drop_prob=0.0,
-                    mode="train",
+                    x, t_enc_ddpm, c, cond_drop_prob=0.0, mode="train"
                 )
 
             e_n = model.forward(
-                x.to(devices[0]),
-                t.float().to(devices[0]),
-                c.to(devices[0]),
-                cond_drop_prob=0.0,
-                mode="train",
+                x, t_enc_ddpm.float(), c, cond_drop_prob=0.0, mode="train"
             )
             e_0.requires_grad = False
             e_p.requires_grad = False
 
-            loss = criteria(
-                e_n.to(devices[0]),
-                e_0.to(devices[0])
-                - (args.negative_guidance * (e_p.to(devices[0]) - e_0.to(devices[0]))),
-            )
-
-            if (step + 1) % self.config.training.log_freq == 0:
-                end = time.time()
-                logging.info(f"step: {step}, loss: {loss.item()}, time: {end-start}")
-                start = time.time()
-
-            optimizer.zero_grad()
-            loss.backward()
+            loss = criteria(e_n, e_0 - (args.negative_guidance * (e_p - e_0)))
 
             try:
                 torch.nn.utils.clip_grad_norm_(
@@ -737,6 +704,7 @@ class Diffusion(object):
             except Exception:
                 pass
             optimizer.step()
+            loss.backward()
 
             if self.config.model.ema:
                 ema_helper.update(model)
@@ -1147,36 +1115,6 @@ class Diffusion(object):
             # https://github.com/clear-nus/selective-amnesia/blob/a7a27ab573ba3be77af9e7aae4a3095da9b136ac/ddpm/models/diffusion.py#L338
             loss = (e - output).square().sum(dim=(1, 2, 3)).mean(dim=0)
 
-            # loss 2
-            # loss = loss_registry_conditional[config.model.type](model, x, t, forget_c, e, b)
-
-            # loss 3
-            # loss = loss_registry_conditional[config.model.type](model, x, t, forget_c, e, b)\
-            #        loss_registry_conditional[config.model.type](model, x, t, forget_c, e, b, cond_drop_prob=1.0)
-
-            """
-            # loss 4
-            forget_loss_1 = loss_registry_conditional[config.model.type](model, x, t, forget_c, e, b, cond_drop_prob=1.0)          
-
-            # remain stage
-            x, remain_c = next(D_remain_iter)
-            n = x.size(0)
-            x = x.to(self.device)
-            x = data_transform(self.config, x)
-            e = torch.randn_like(x)
-            b = self.betas
-
-            # antithetic sampling
-            t = torch.randint(
-                low=0, high=self.num_timesteps, size=(n // 2 + 1,)
-            ).to(self.device)
-            t = torch.cat([t, self.num_timesteps - t - 1], dim=0)[:n]
-
-            # loss 4
-            forget_loss_2 = loss_registry_conditional[config.model.type](model, x, t, forget_c, e, b) 
-            loss = forget_loss_1 + forget_loss_2
-            """
-
             if (step + 1) % self.config.training.log_freq == 0:
                 end = time.time()
                 logging.info(f"step: {step}, loss: {loss.item()}, time: {end-start}")
@@ -1195,8 +1133,10 @@ class Diffusion(object):
 
             for name, param in model.named_parameters():
                 if param.grad is not None:
-                    gradient = param.grad.data.abs()
+                    gradient = param.grad.data
                     gradients[name] += gradient
+
+            
 
             threshold_list = [1.0, 0.5]
             for i in threshold_list:

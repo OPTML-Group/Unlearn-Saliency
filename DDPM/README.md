@@ -36,7 +36,7 @@ pip install -r requirements.txt
 3. Forgetting training with Saliency-Unlearning
 
    ```
-   CUDA_VISIBLE_DEVICES="0,1" python train.py --config cifar10_saliency_unlearn.yml --ckpt_folder results/cifar10/yyyy_mm_dd_hhmmss --label_to_forget 0 --mode natural_forget --mask_path results/cifar10/unlearn/mask/{mask_name} --alpha 0.0 --method ri
+   CUDA_VISIBLE_DEVICES="0,1" python train.py --config cifar10_saliency_unlearn.yml --ckpt_folder results/cifar10/yyyy_mm_dd_hhmmss --label_to_forget 0 --mode saliency_unlearn --mask_path results/cifar10/unlearn/mask/{mask_name} --alpha 0.0 --method rl
    ```
 
    This should create another folder in `results/cifar10/unlearn/{method_name}`. 
@@ -104,4 +104,3 @@ pip install -r requirements.txt
     Classifier evaluation:
     Average entropy: 1.4654556959867477
     Average prob of forgotten class: 0.15628313273191452
-    ```
