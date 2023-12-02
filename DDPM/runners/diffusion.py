@@ -1058,8 +1058,6 @@ class Diffusion(object):
         D_remain_loader, D_forget_loader = get_forget_dataset(
             args, config, args.label_to_forget
         )
-        D_remain_iter = cycle(D_remain_loader)
-        D_forget_iter = cycle(D_forget_loader)
 
         print("Loading checkpoints {}".format(args.ckpt_folder))
         model = Conditional_Model(config)
@@ -1084,15 +1082,10 @@ class Diffusion(object):
         for name, param in model.named_parameters():
             gradients[name] = 0
 
-        model.train()
+        model.eval()
         start = time.time()
 
-        for step in range(1):
-            model.train()
-
-            # forget stage
-            x, forget_c = next(D_forget_iter)
-
+        for x, forget_c in D_forget_loader:
             n = x.size(0)
             x = x.to(self.device)
             x = data_transform(self.config, x)
@@ -1131,61 +1124,64 @@ class Diffusion(object):
                 pass
             optimizer.step()
 
-            for name, param in model.named_parameters():
-                if param.grad is not None:
-                    gradient = param.grad.data
-                    gradients[name] += gradient
+            with torch.no_grad():
+                for name, param in model.named_parameters():
+                    if param.grad is not None:
+                        gradient = param.grad.data
+                        gradients[name] += gradient
 
-            
+        with torch.no_grad():
+            for name in gradients:
+                gradients[name] = torch.abs_(gradients[name])
 
-            threshold_list = [1.0, 0.5]
-            for i in threshold_list:
-                print(i)
-                sorted_dict_positions = {}
-                hard_dict = {}
+        threshold_list = [1.0, 0.5]
+        for i in threshold_list:
+            print(i)
+            sorted_dict_positions = {}
+            hard_dict = {}
 
-                # Concatenate all tensors into a single tensor
-                all_elements = torch.cat(
-                    [tensor.flatten() for tensor in gradients.values()]
-                )
-
-                # Calculate the threshold index for the top 10% elements
-                threshold_index = int(len(all_elements) * i)
-
-                # Calculate positions of all elements
-                positions = torch.argsort(all_elements)
-                ranks = torch.argsort(positions)
-
-                start_index = 0
-                for key, tensor in gradients.items():
-                    num_elements = tensor.numel()
-                    # tensor_positions = positions[start_index: start_index + num_elements]
-                    tensor_ranks = ranks[start_index : start_index + num_elements]
-
-                    sorted_positions = tensor_ranks.reshape(tensor.shape)
-                    sorted_dict_positions[key] = sorted_positions
-
-                    # Set the corresponding elements to 1
-                    threshold_tensor = torch.zeros_like(tensor_ranks)
-                    threshold_tensor[tensor_ranks < threshold_index] = 1
-                    threshold_tensor = threshold_tensor.reshape(tensor.shape)
-                    hard_dict[key] = threshold_tensor
-                    start_index += num_elements
-
-                torch.save(
-                    hard_dict, os.path.join("results/cifar10/mask/mask_{}.pt".format(i))
-                )
-
-            inverted_dict = {key: 1 - value for key, value in hard_dict.items()}
-            torch.save(
-                inverted_dict,
-                os.path.join("results/cifar10/mask/inverted_mask_{}.pt".format(i)),
+            # Concatenate all tensors into a single tensor
+            all_elements = torch.cat(
+                [tensor.flatten() for tensor in gradients.values()]
             )
 
-            random_dict = {}
-            for name, param in model.named_parameters():
-                if param.grad is not None:
-                    random_dict[name] = torch.randint(
-                        2, size=param.grad.shape, dtype=torch.float32
-                    )
-            torch.save(random_dict, os.path.join("results/cifar10/mask/random_mask.pt"))
+            # Calculate the threshold index for the top 10% elements
+            threshold_index = int(len(all_elements) * i)
+
+            # Calculate positions of all elements
+            positions = torch.argsort(all_elements)
+            ranks = torch.argsort(positions)
+
+            start_index = 0
+            for key, tensor in gradients.items():
+                num_elements = tensor.numel()
+                # tensor_positions = positions[start_index: start_index + num_elements]
+                tensor_ranks = ranks[start_index : start_index + num_elements]
+
+                sorted_positions = tensor_ranks.reshape(tensor.shape)
+                sorted_dict_positions[key] = sorted_positions
+
+                # Set the corresponding elements to 1
+                threshold_tensor = torch.zeros_like(tensor_ranks)
+                threshold_tensor[tensor_ranks < threshold_index] = 1
+                threshold_tensor = threshold_tensor.reshape(tensor.shape)
+                hard_dict[key] = threshold_tensor
+                start_index += num_elements
+
+            torch.save(
+                hard_dict, os.path.join("results/cifar10/mask/mask_{}.pt".format(i))
+            )
+
+        inverted_dict = {key: 1 - value for key, value in hard_dict.items()}
+        torch.save(
+            inverted_dict,
+            os.path.join("results/cifar10/mask/inverted_mask_{}.pt".format(i)),
+        )
+
+        random_dict = {}
+        for name, param in model.named_parameters():
+            if param.grad is not None:
+                random_dict[name] = torch.randint(
+                    2, size=param.grad.shape, dtype=torch.float32
+                )
+        torch.save(random_dict, os.path.join("results/cifar10/mask/random_mask.pt"))
