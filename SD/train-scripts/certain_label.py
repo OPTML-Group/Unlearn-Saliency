@@ -167,13 +167,16 @@ def certain_label(
                 sleep(0.1)
                 time.update(1)
 
-        prompts_path = "prompts/imagenette.csv"
+        prompts_path = "prompts/tench.csv"
         df = pd.read_csv(prompts_path)
         all_images = []
 
+        image_path = os.path.join("images", name, str(classes), str(epoch))
+        os.makedirs(image_path, exist_ok=True)
+
         num_inference_steps = 50
         model.eval()
-        for _, row in df.iterrows():
+        for k, row in df.iterrows():
             # https://github.com/CompVis/stable-diffusion/blob/21f890f9da3cfbeaba8e2ac3c425ee9e998d5229/scripts/txt2img.py#L289
             uncond_embeddings = model.get_learned_conditioning(1 * [""])
             text_embeddings = model.get_learned_conditioning(1 * [str(row.prompt)])
@@ -183,66 +186,75 @@ def certain_label(
             height = image_size
             width = image_size
 
-            latents = torch.randn((1, 4, height // 8, width // 8))
-            latents = latents.to(device)
+            for n in range(10):
+                print(k, n)
+                latents = torch.randn((1, 4, height // 8, width // 8))
+                latents = latents.to(device)
 
-            scheduler.set_timesteps(num_inference_steps)
+                scheduler.set_timesteps(num_inference_steps)
 
-            latents = latents * scheduler.init_noise_sigma
-            scheduler.set_timesteps(num_inference_steps)
+                latents = latents * scheduler.init_noise_sigma
+                scheduler.set_timesteps(num_inference_steps)
 
-            for t in tqdm(scheduler.timesteps):
-                # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
-                latent_model_input = torch.cat([latents] * 2)
+                for t in tqdm(scheduler.timesteps):
+                    # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
+                    latent_model_input = torch.cat([latents] * 2)
 
-                latent_model_input = scheduler.scale_model_input(
-                    latent_model_input, timestep=t
-                )
-
-                # predict the noise residual
-                with torch.no_grad():
-                    t_unet = torch.full((2,), t, device=device)
-                    noise_pred = model.apply_model(
-                        latent_model_input, t_unet, text_embeddings
+                    latent_model_input = scheduler.scale_model_input(
+                        latent_model_input, timestep=t
                     )
 
-                # perform guidance
-                noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-                noise_pred = noise_pred_uncond + 7.5 * (
-                    noise_pred_text - noise_pred_uncond
-                )
+                    # predict the noise residual
+                    with torch.no_grad():
+                        t_unet = torch.full((2,), t, device=device)
+                        noise_pred = model.apply_model(
+                            latent_model_input, t_unet, text_embeddings
+                        )
 
-                # compute the previous noisy sample x_t -> x_t-1
-                latents = scheduler.step(noise_pred, t, latents).prev_sample
+                    # perform guidance
+                    noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+                    noise_pred = noise_pred_uncond + 7.5 * (
+                        noise_pred_text - noise_pred_uncond
+                    )
 
-            with torch.no_grad():
-                image = model.decode_first_stage(latents)
+                    # compute the previous noisy sample x_t -> x_t-1
+                    latents = scheduler.step(noise_pred, t, latents).prev_sample
 
-            image = (image / 2 + 0.5).clamp(0, 1)
-            all_images.append(image)
+                with torch.no_grad():
+                    image = model.decode_first_stage(latents)
 
-        grid = torch.stack(all_images, 0)
-        grid = rearrange(grid, "n b c h w -> (n b) c h w")
-        grid = make_grid(grid, nrow=5)
+                image = (image / 2 + 0.5).clamp(0, 1)
+                image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
+                images = (image * 255).round().astype("uint8")
+                pil_images = [Image.fromarray(image) for image in images]
+                for num, im in enumerate(pil_images):
+                    im.save(f"{image_path}/{k * 10 + n}.png")
 
-        # to image
-        grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
-        img = Image.fromarray(grid.astype(np.uint8))
+        #     all_images.append(image)
 
-        folder_path = f"models/{name}"
-        os.makedirs(folder_path, exist_ok=True)
-        img.save(os.path.join(f"{folder_path}", f"epoch_{epoch}.png"))
+        # grid = torch.stack(all_images, 0)
+        # grid = rearrange(grid, "n b c h w -> (n b) c h w")
+        # grid = make_grid(grid, nrow=5)
 
-    model.eval()
-    save_model(
-        model,
-        name,
-        None,
-        save_compvis=True,
-        save_diffusers=True,
-        compvis_config_file=config_path,
-        diffusers_config_file=diffusers_config_path,
-    )
+        # # to image
+        # grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
+        # img = Image.fromarray(grid.astype(np.uint8))
+
+        # folder_path = f"models/{name}"
+        # os.makedirs(folder_path, exist_ok=True)
+        # img.save(os.path.join(f"{folder_path}", f"epoch_{epoch}.png"))
+
+        model.eval()
+        save_model(
+            model,
+            name,
+            epoch,
+            save_compvis=True,
+            save_diffusers=False,
+            compvis_config_file=config_path,
+            diffusers_config_file=diffusers_config_path,
+        )
+
     save_history(losses, name, classes)
 
 

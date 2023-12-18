@@ -28,7 +28,7 @@ def save_gradient_ratio(data_loaders, model, criterion, args):
     gradients = {}
 
     forget_loader = data_loaders["forget"]
-    model.train()
+    model.eval()
 
     for name, param in model.named_parameters():
         gradients[name] = 0
@@ -48,10 +48,10 @@ def save_gradient_ratio(data_loaders, model, criterion, args):
             loss.backward()
             optimizer.step()
 
-            for name, param in model.named_parameters():
-                if param.grad is not None:
-                    gradient = param.grad.data.abs()
-                    gradients[name] += gradient
+            with torch.no_grad():
+                for name, param in model.named_parameters():
+                    if param.grad is not None:
+                        gradients[name] += param.grad.data
 
     else:
         for i, (image, target) in enumerate(forget_loader):
@@ -66,13 +66,14 @@ def save_gradient_ratio(data_loaders, model, criterion, args):
             loss.backward()
             optimizer.step()
 
-            for name, param in model.named_parameters():
-                if param.grad is not None:
-                    # gradient = torch.norm(param.grad.data)
-                    # print(param.grad.data.abs())
+            with torch.no_grad():
+                for name, param in model.named_parameters():
+                    if param.grad is not None:
+                        gradients[name] += param.grad.data
 
-                    gradient = param.grad.data.abs()
-                    gradients[name] += gradient
+    with torch.no_grad():
+        for name in gradients:
+            gradients[name] = torch.abs_(gradients[name])
 
     threshold_list = [0.1, 0.2, 0.3, 0.4, 0.5]
 
