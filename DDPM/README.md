@@ -1,11 +1,11 @@
 # Saliency-Unlearning for DDPM
-This is the official repository for Saliency Unlearning for diffusion models. The code structure of this project is adapted from the [DDIM](https://github.com/ermongroup/ddim) and [SA](https://github.com/clear-nus/selective-amnesia/tree/a7a27ab573ba3be77af9e7aae4a3095da9b136ac/ddpm) codebase.
+This is the official repository for Saliency Unlearning for DDPM. The code structure of this project is adapted from the [DDIM](https://github.com/ermongroup/ddim) and [SA](https://github.com/clear-nus/selective-amnesia/tree/a7a27ab573ba3be77af9e7aae4a3095da9b136ac/ddpm) codebase.
 
 # Requirements
 Install the requirements using a `conda` environment:
 ```
-conda create --name sa-ddpm python=3.8
-conda activate sa-ddpm
+conda create --name salun-ddpm python=3.8
+conda activate salun-ddpm
 pip install -r requirements.txt
 ```
 
@@ -15,7 +15,7 @@ pip install -r requirements.txt
 
    Specify GPUs using the `CUDA_VISIBLE_DEVICES` environment flag. 
 
-   We demonstrate the code to run Saliency-Unlearning on CIFAR10; the commands can run the STL10 experiments using the same commands but replacing config  and dataset flags accordingly.
+   We demonstrate the code to run Saliency Unlearning on CIFAR10; the commands can run the STL10 experiments using the same commands but replacing config  and dataset flags accordingly.
 
    For instance, using two GPUs with IDs 0 and 1 on CIFAR10,
 
@@ -45,13 +45,6 @@ pip install -r requirements.txt
 
    You can experiment with forgetting different method using the `--method` flag, but we will consider forgetting with random label(rl) here.
 
-4. Forgetting training with ESD
-
-   ```
-   CUDA_VISIBLE_DEVICES="0,1" python train.py --config cifar10_saliency_unlearn.yml --ckpt_folder results/cifar10/yyyy_mm_dd_hhmmss --label_to_forget 0 --mode train_esd
-   ```
-
-   This should create another folder in `results/cifar10/yyyy_mm_dd_hhmmss`. 
 
 # Evaluation
 1. Image Metrics Evaluation on Classes to Remember

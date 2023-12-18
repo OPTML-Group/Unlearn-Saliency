@@ -1,22 +1,13 @@
 import argparse
-import glob
 import os
-import pdb
-import random
-import re
-import shutil
 from time import sleep
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import torch
 from convertModels import savemodelDiffusers
 from dataset import setup_forget_data, setup_model, setup_remain_data
 from diffusers import LMSDiscreteScheduler
-from einops import rearrange, repeat
-from PIL import Image
-from torchvision.utils import make_grid
 from tqdm import tqdm
 
 
@@ -77,7 +68,6 @@ def gradient_ascent(
     for epoch in range(epochs):
         with tqdm(total=len(forget_dl)) as t:
             for i in range(len(forget_dl)):
-                # for i in range(1):
                 optimizer.zero_grad()
 
                 forget_images, forget_labels = next(iter(forget_dl))
@@ -116,75 +106,8 @@ def gradient_ascent(
 
                 t.set_description("Epoch %i" % epoch)
                 t.set_postfix(loss=loss.item() / batch_size)
-                # t.set_postfix(avg_loss=np.mean(losses), lr=optimizer.param_groups[0]['lr'])
                 sleep(0.1)
                 t.update(1)
-
-        prompts_path = "prompts/imagenette.csv"
-        df = pd.read_csv(prompts_path)
-        all_images = []
-
-        num_inference_steps = 50
-        model.eval()
-        for _, row in df.iterrows():
-            # https://github.com/CompVis/stable-diffusion/blob/21f890f9da3cfbeaba8e2ac3c425ee9e998d5229/scripts/txt2img.py#L289
-            uncond_embeddings = model.get_learned_conditioning(1 * [""])
-            text_embeddings = model.get_learned_conditioning(1 * [str(row.prompt)])
-            print(str(row.prompt))
-            text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
-
-            height = image_size
-            width = image_size
-
-            latents = torch.randn((1, 4, height // 8, width // 8))
-            latents = latents.to(device)
-
-            scheduler.set_timesteps(num_inference_steps)
-
-            latents = latents * scheduler.init_noise_sigma
-            scheduler.set_timesteps(num_inference_steps)
-
-            for t in tqdm(scheduler.timesteps):
-                # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
-                latent_model_input = torch.cat([latents] * 2)
-
-                latent_model_input = scheduler.scale_model_input(
-                    latent_model_input, timestep=t
-                )
-
-                # predict the noise residual
-                with torch.no_grad():
-                    t_unet = torch.full((2,), t, device=device)
-                    noise_pred = model.apply_model(
-                        latent_model_input, t_unet, text_embeddings
-                    )
-
-                # perform guidance
-                noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-                noise_pred = noise_pred_uncond + 7.5 * (
-                    noise_pred_text - noise_pred_uncond
-                )
-
-                # compute the previous noisy sample x_t -> x_t-1
-                latents = scheduler.step(noise_pred, t, latents).prev_sample
-
-            with torch.no_grad():
-                image = model.decode_first_stage(latents)
-
-            image = (image / 2 + 0.5).clamp(0, 1)
-            all_images.append(image)
-
-        grid = torch.stack(all_images, 0)
-        grid = rearrange(grid, "n b c h w -> (n b) c h w")
-        grid = make_grid(grid, nrow=5)
-
-        # to image
-        grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
-        img = Image.fromarray(grid.astype(np.uint8))
-
-        folder_path = f"models/{name}"
-        os.makedirs(folder_path, exist_ok=True)
-        img.save(os.path.join(f"{folder_path}", f"epoch_{epoch}.png"))
 
     model.eval()
     save_model(
@@ -339,7 +262,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    # classes = [int(d) for d in args.classes.split(',')]
     classes = int(args.class_to_forget)
     print(classes)
     train_method = args.train_method

@@ -1,10 +1,5 @@
 import argparse
-import glob
 import os
-import pdb
-import random
-import re
-import shutil
 from time import sleep
 
 import matplotlib.pyplot as plt
@@ -12,98 +7,12 @@ import numpy as np
 import torch
 from convertModels import savemodelDiffusers
 from dataset import (
-    setup_forget_data,
     setup_forget_nsfw_data,
     setup_model,
-    setup_remain_data,
 )
 from diffusers import LMSDiscreteScheduler
-from einops import rearrange, repeat
 from ldm.models.diffusion.ddim import DDIMSampler
-from PIL import Image
-from torch.optim.lr_scheduler import LambdaLR
-from torchvision.utils import make_grid
 from tqdm import tqdm
-
-
-# Util Functions
-def load_model_from_config(config, ckpt, device="cpu", verbose=False):
-    """Loads a model from config and a ckpt
-    if config is a path will use omegaconf to load
-    """
-    if isinstance(config, (str, Path)):
-        config = OmegaConf.load(config)
-
-    pl_sd = torch.load(ckpt, map_location="cpu")
-    global_step = pl_sd["global_step"]
-    sd = pl_sd["state_dict"]
-    model = instantiate_from_config(config.model)
-    m, u = model.load_state_dict(sd, strict=False)
-    model.to(device)
-    model.eval()
-    model.cond_stage_model.device = device
-    return model
-
-
-@torch.no_grad()
-def sample_model(
-    model,
-    sampler,
-    c,
-    h,
-    w,
-    ddim_steps,
-    scale,
-    ddim_eta,
-    start_code=None,
-    n_samples=1,
-    t_start=-1,
-    log_every_t=None,
-    till_T=None,
-    verbose=True,
-):
-    """Sample the model"""
-    uc = None
-    if scale != 1.0:
-        uc = model.get_learned_conditioning(n_samples * [""])
-    log_t = 100
-    if log_every_t is not None:
-        log_t = log_every_t
-    shape = [4, h // 8, w // 8]
-    samples_ddim, inters = sampler.sample(
-        S=ddim_steps,
-        conditioning=c,
-        batch_size=n_samples,
-        shape=shape,
-        verbose=False,
-        x_T=start_code,
-        unconditional_guidance_scale=scale,
-        unconditional_conditioning=uc,
-        eta=ddim_eta,
-        verbose_iter=verbose,
-        t_start=t_start,
-        log_every_t=log_t,
-        till_T=till_T,
-    )
-    if log_every_t is not None:
-        return samples_ddim, inters
-    return samples_ddim
-
-
-def load_img(path, target_size=512):
-    """Load an image, resize and output -1..1"""
-    image = Image.open(path).convert("RGB")
-
-    tform = transforms.Compose(
-        [
-            transforms.Resize(target_size),
-            transforms.CenterCrop(target_size),
-            transforms.ToTensor(),
-        ]
-    )
-    image = tform(image)
-    return 2.0 * image - 1.0
-
 
 def moving_average(a, n=3):
     ret = np.cumsum(a, dtype=float)
@@ -150,18 +59,6 @@ def nsfw_removal(
     # choose parameters to train based on train_method
     parameters = []
     for name, param in model.model.diffusion_model.named_parameters():
-        # train all layers except x-attns and time_embed layers
-        if train_method == "noxattn":
-            if name.startswith("out.") or "attn2" in name or "time_embed" in name:
-                pass
-            else:
-                print(name)
-                parameters.append(param)
-        # train only self attention layers
-        if train_method == "selfattn":
-            if "attn1" in name:
-                print(name)
-                parameters.append(param)
         # train only x attention layers
         if train_method == "xattn":
             if "attn2" in name:
@@ -169,30 +66,14 @@ def nsfw_removal(
                 parameters.append(param)
         # train all layers
         if train_method == "full":
-            print(name)
+            # print(name)
             parameters.append(param)
-        # train all layers except time embed layers
-        if train_method == "notime":
-            if not (name.startswith("out.") or "time_embed" in name):
-                print(name)
-                parameters.append(param)
-        if train_method == "xlayer":
-            if "attn2" in name:
-                if "output_blocks.6." in name or "output_blocks.8." in name:
-                    print(name)
-                    parameters.append(param)
-        if train_method == "selflayer":
-            if "attn1" in name:
-                if "input_blocks.4." in name or "input_blocks.7." in name:
-                    print(name)
-                    parameters.append(param)
     # set model to train
     model.train()
 
     losses = []
     optimizer = torch.optim.Adam(parameters, lr=lr)
     criteria = torch.nn.MSELoss()
-    history = []
 
     if mask_path:
         mask = torch.load(mask_path)
@@ -282,74 +163,6 @@ def nsfw_removal(
                 time.set_postfix(loss=loss.item() / batch_size)
                 sleep(0.1)
                 time.update(1)
-
-                if (i + 1) % 10 == 0:
-                    all_images = []
-                    num_inference_steps = 50
-                    model.eval()
-
-                    all_prompts = [word_nude, word_wear]
-                    for prompt in all_prompts:
-                        # https://github.com/CompVis/stable-diffusion/blob/21f890f9da3cfbeaba8e2ac3c425ee9e998d5229/scripts/txt2img.py#L289
-                        uncond_embeddings = model.get_learned_conditioning(5 * [""])
-                        text_embeddings = model.get_learned_conditioning(5 * [prompt])
-                        print(str(prompt))
-                        text_embeddings = torch.cat(
-                            [uncond_embeddings, text_embeddings]
-                        )
-
-                        height = image_size
-                        width = image_size
-
-                        latents = torch.randn((5, 4, height // 8, width // 8))
-                        latents = latents.to(device)
-
-                        scheduler.set_timesteps(num_inference_steps)
-
-                        latents = latents * scheduler.init_noise_sigma
-                        scheduler.set_timesteps(num_inference_steps)
-
-                        for t in tqdm(scheduler.timesteps):
-                            # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
-                            latent_model_input = torch.cat([latents] * 2)
-
-                            latent_model_input = scheduler.scale_model_input(
-                                latent_model_input, timestep=t
-                            )
-
-                            # predict the noise residual
-                            with torch.no_grad():
-                                t_unet = torch.full((10,), t, device=device)
-                                noise_pred = model.apply_model(
-                                    latent_model_input, t_unet, text_embeddings
-                                )
-
-                            # perform guidance
-                            noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-                            noise_pred = noise_pred_uncond + 7.5 * (
-                                noise_pred_text - noise_pred_uncond
-                            )
-
-                            # compute the previous noisy sample x_t -> x_t-1
-                            latents = scheduler.step(noise_pred, t, latents).prev_sample
-
-                        with torch.no_grad():
-                            image = model.decode_first_stage(latents)
-
-                        image = (image / 2 + 0.5).clamp(0, 1)
-                        all_images.append(image)
-
-                    grid = torch.stack(all_images, 0)
-                    grid = rearrange(grid, "n b c h w -> (n b) c h w")
-                    grid = make_grid(grid, nrow=5)
-
-                    # to image
-                    grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
-                    img = Image.fromarray(grid.astype(np.uint8))
-
-                    folder_path = f"models/{name}"
-                    os.makedirs(folder_path, exist_ok=True)
-                    img.save(os.path.join(f"{folder_path}", f"epoch_{epoch}.png"))
 
     model.eval()
     save_model(
@@ -509,6 +322,3 @@ if __name__ == "__main__":
         image_size=image_size,
         ddim_steps=ddim_steps,
     )
-
-# python train-scripts/nsfw_removal.py --train_method 'full' --device '1'
-# python train-scripts/nsfw_removal.py --train_method 'full' --device '1' --mask_path 'mask/nude_0.5.pt'

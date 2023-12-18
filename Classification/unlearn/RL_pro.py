@@ -1,26 +1,26 @@
+import torch
 import time
 from copy import deepcopy
-
-import numpy as np
-import torch
 import utils
-
 from .impl import iterative_unlearn
-
+import numpy as np
 
 @iterative_unlearn
-def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
+def RL_proximal(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
     forget_loader = data_loaders["forget"]
     retain_loader = data_loaders["retain"]
     forget_dataset = deepcopy(forget_loader.dataset)
+    mask_ratio = args.mask_ratio
+    print(mask_ratio)
     
-    if args.dataset == "cifar10" or args.dataset == "TinyImagenet":
-        try:
-            forget_dataset.targets = np.random.randint(0, args.num_classes, forget_dataset.targets.shape)
-        except:
-            print(forget_dataset.dataset.targets[:10])
-            forget_dataset.dataset.targets = np.random.randint(0, args.num_classes, len(forget_dataset.dataset.targets))
-            print(forget_dataset.dataset.targets[:10])
+    # concat all params
+    init_params = torch.concat([param.view(-1) for param in model.parameters()], dim=0)
+    n_params = init_params.numel()        
+    total_steps = args.unlearn_epochs * (len(forget_loader) + len(retain_loader))
+    
+    if args.dataset == "cifar10" or args.dataset == "cifar100" or args.dataset == "TinyImagenet":
+        forget_dataset.targets = np.random.randint(0, args.num_classes, forget_dataset.targets.shape)
+        print(forget_dataset.targets)
     
         retain_dataset = retain_loader.dataset
         train_dataset = torch.utils.data.ConcatDataset([forget_dataset,retain_dataset])
@@ -42,33 +42,27 @@ def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
             i = it + len(forget_loader)
             image = image.cuda()
             target = target.cuda()
-
-            if args.arch == "clip":
-                image = preprocess(image)
-                # Calculate features
-                image_features = model.encode_image(image)
-                with torch.no_grad():
-                    text_features = model.encode_text(text_inputs)
-
-                image_features = image_features / image_features.norm(dim=-1, keepdim=True)
-                text_features = text_features / text_features.norm(dim=-1, keepdim=True)
-                output_clean = (100.0 * image_features @ text_features.T).softmax(dim=-1)
-
-            else:
-                # compute output
-                output_clean = model(image)
-
+            # compute output
+            output_clean = model(image)
             loss = criterion(output_clean, target)
       
             optimizer.zero_grad()
             loss.backward()
-            
-            if mask:
-                for name, param in model.named_parameters():
-                    if param.grad is not None:
-                        param.grad *= mask[name]
+
             
             optimizer.step()
+                  
+            ratio = int(mask_ratio * ((total_steps - (epoch * (len(forget_loader) + len(retain_loader)) + 1)) / total_steps * n_params))           
+            params = torch.concat([param.view(-1) for param in model.parameters()], dim=0)
+            diff_params = params - init_params
+            threshold = -torch.topk(-diff_params.abs(), ratio)[0][-1]
+            # print(threshold)
+            params = torch.where(diff_params > threshold, params - threshold, 
+                                        torch.where(diff_params < -threshold, params + threshold, init_params))
+            # update params
+            for name, param in model.named_parameters():
+                param.data = params[:param.numel()].view(param.shape)
+                params = params[param.numel():]
       
             output = output_clean.float()
             loss = loss.float()
@@ -87,7 +81,7 @@ def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
                           epoch, i, loader_len, end-start, loss=losses, top1=top1))
                 start = time.time()
       
-    elif args.dataset == "svhn" or args.dataset == "cifar100":
+    elif args.dataset == "svhn":
         losses = utils.AverageMeter()
         top1 = utils.AverageMeter()
       
@@ -111,13 +105,19 @@ def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
             
             optimizer.zero_grad()
             loss.backward()
-            
-            if mask:
-                for name, param in model.named_parameters():
-                    if param.grad is not None:
-                        param.grad *= mask[name]
-            
             optimizer.step()
+            
+            ratio = int(mask_ratio * ((total_steps - (epoch * (len(forget_loader) + len(retain_loader)) + 1)) / total_steps * n_params))           
+            params = torch.concat([param.view(-1) for param in model.parameters()], dim=0)
+            diff_params = params - init_params
+            threshold = -torch.topk(-diff_params.abs(), ratio)[0][-1]
+            # print(threshold)
+            params = torch.where(diff_params > threshold, params - threshold, 
+                                        torch.where(diff_params < -threshold, params + threshold, init_params))
+            # update params
+            for name, param in model.named_parameters():
+                param.data = params[:param.numel()].view(param.shape)
+                params = params[param.numel():]
             
         for i, (image, target) in enumerate(retain_loader):
             image = image.cuda()
@@ -129,13 +129,19 @@ def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
             
             optimizer.zero_grad()
             loss.backward()
-            
-            if mask:
-                for name, param in model.named_parameters():
-                    if param.grad is not None:
-                        param.grad *= mask[name]
-            
             optimizer.step()
+            
+            ratio = int(mask_ratio * ((total_steps - (epoch * (len(forget_loader) + len(retain_loader)) + i + 1)) / total_steps * n_params))           
+            params = torch.concat([param.view(-1) for param in model.parameters()], dim=0)
+            diff_params = params - init_params
+            threshold = -torch.topk(-diff_params.abs(), ratio)[0][-1]
+            # print(threshold)
+            params = torch.where(diff_params > threshold, params - threshold, 
+                                        torch.where(diff_params < -threshold, params + threshold, init_params))
+            # update params
+            for name, param in model.named_parameters():
+                param.data = params[:param.numel()].view(param.shape)
+                params = params[param.numel():]
             
             output = output_clean.float()
             loss = loss.float()

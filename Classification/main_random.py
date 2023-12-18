@@ -134,18 +134,6 @@ def main():
     if args.resume and checkpoint is not None:
         model, evaluation_result = checkpoint
     else:
-        """
-        checkpoint = torch.load(args.mask)
-        if 'state_dict' in checkpoint.keys():
-            checkpoint = checkpoint['state_dict'].to(device)
-
-        current_mask = pruner.extract_mask(checkpoint)
-        pruner.prune_model_custom(model, current_mask)
-        pruner.check_sparsity(model)
-
-        if args.unlearn != "retrain":
-            model.load_state_dict(checkpoint, strict=False)
-        """
 
         checkpoint = torch.load(args.mask, map_location=device)
         if "state_dict" in checkpoint.keys():

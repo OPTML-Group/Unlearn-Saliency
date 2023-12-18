@@ -269,10 +269,3 @@ if __name__ == "__main__":
         num_samples=num_samples,
         from_case=from_case,
     )
-
-    # python eval-scripts/generate-images.py --model_name "compvis-classes_[1]-cg_7.5-epoch_25-lr_0.0001" --prompts_path 'prompts/cifar2.csv' --save_path 'evaluation_folder/retrain' --num_samples 10 --device "cuda:5"
-    # python eval-scripts/generate-images.py --model_name "compvis-esd-method_noxattn-lr_1e-05" --prompts_path 'prompts/imagenette.csv' --save_path 'evaluation_folder/unlearn' --device "cuda:1"
-    # python eval-scripts/generate-images.py --model_name "compvis-nsfw-method_full-lr_1e-05" --prompts_path 'prompts/unsafe-prompts4703.csv' --save_path 'evaluation_folder/nsfw' --num_samples 1 --device "cuda:0"
-
-    # python eval-scripts/generate-images.py --model_name "compvis-word_garbagetruck-method_noxattn-sg_3-ng_1-iter_1000-lr_1e-05" --prompts_path 'prompts/imagenette.csv' --save_path 'evaluation_folder/fid' --device "cuda:0"
-    # python eval-scripts/generate-images.py --model_name "compvis-word_garbagetruck-method_noxattn-sg_3-ng_1-iter_1000-lr_1e-05" --prompts_path 'prompts/garbage_truck.csv' --save_path 'evaluation_folder/ua' --device "cuda:0"

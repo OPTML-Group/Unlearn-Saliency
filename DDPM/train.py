@@ -94,7 +94,7 @@ def parse_args_and_config():
 
     args = parser.parse_args()
 
-    if args.mode == "natural_forget":
+    if args.mode == "saliency_unlearn":
         config = get_mask_config_and_setup_dirs(
             args, os.path.join("configs", args.config)
         )
@@ -144,24 +144,12 @@ def main():
         elif args.mode == "retrain":
             runner = Diffusion(args, config)
             runner.retrain()
-        elif args.mode == "classifier_forget":
-            runner = Diffusion(args, config)
-            runner.classifier_forget()
-        elif args.mode == "classifier_l1_forget":
-            runner = Diffusion(args, config)
-            runner.classifier_l1_forget()
-        elif args.mode == "classifier_projection_forget":
-            runner = Diffusion(args, config)
-            runner.classifier_projection_forget()
-        elif args.mode == "classifier_mask_forget":
-            runner = Diffusion(args, config)
-            runner.classifier_mask_forget()
         elif args.mode == "train_esd":
             runner = Diffusion(args, config)
             runner.train_esd()
-        elif args.mode == "natural_forget":
+        elif args.mode == "saliency_unlearn":
             runner = Diffusion(args, config)
-            runner.natural_forget()
+            runner.saliency_unlearn()
         elif args.mode == "generate_mask":
             runner = Diffusion(args, config)
             runner.generate_mask()
@@ -173,18 +161,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-
-# CUDA_VISIBLE_DEVICEs="0,1,2,3,4,5,6,7" python train.py --config cifar10_classifier_forget.yml --ckpt_folder results/cifar10/2023_08_16_224303 --label_to_forget 0 --mode classifier_forget
-# python train.py --config cifar10_classifier_forget.yml --ckpt_folder results/cifar10/2023_08_16_224303 --label_to_forget 0 --mode train_esd
-
-# CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7" python train.py --config cifar10_train.yml --ckpt_folder results/cifar10/2023_08_16_224303 --label_to_forget 0 --mode retrain
-# CUDA_VISIBLE_DEVICEs="0" python train.py --config cifar10_classifier_forget.yml --ckpt_folder results/cifar10/2023_08_16_224303 --label_to_forget 0 --mode generate_mask
-# python evaluator.py results/cifar10/2023_08_16_224303/fid_samples_guidance_2.0_excluded_class_0 cifar10_without_label_0 cifar10_without_label_0
-# python classifier_evaluation.py --sample_path results/cifar10/2023_08_16_224303/class_samples/0 --dataset cifar10 --label_of_forgotten_class 0
-
-
-# without exp
-# 0.0001 not converge
-# 0.00001 not converge
-# 0.000005 not converge -> negative infinity
-# 0.000001 not full converge

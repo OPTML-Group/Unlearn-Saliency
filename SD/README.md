@@ -19,7 +19,7 @@ This is the official repository for Saliency Unlearning for stable diffusion. Th
 2. Forgetting training with Saliency-Unlearning
 
    ```
-    python train-scripts/certain_label.py --train_method full --alpha 0.5 --lr 1e-5 --epochs 5  --class_to_forget {label} --mask_path 'mask/{label}/with_0.5.pt' --device '0'
+    python train-scripts/random_label.py --train_method full --alpha 0.5 --lr 1e-5 --epochs 5  --class_to_forget {label} --mask_path 'mask/{label}/with_0.5.pt' --device '0'
    ```
 
    This should create another folder in `stable-diffusion/model`. 

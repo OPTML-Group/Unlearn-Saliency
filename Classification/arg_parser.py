@@ -140,13 +140,6 @@ def parse_args():
 
     parser.add_argument("--path", default=None, type=str, help="mask matrix")
 
-    ##################################### Surgical setting #################################################
-    parser.add_argument("--surgical", action="store_true", help="surgical fine-tuning")
-    # parser.add_argument('--choice', type=str, choices=['layer0', 'layer1', 'layer2', 'layer3', 'fc'],
-    #                     help='choice of layers')
-
-    parser.add_argument("--choice", nargs="+", type=str, help="choices of layers")
-
     ##################################### Attack setting #################################################
     parser.add_argument(
         "--attack", type=str, default="backdoor", help="method to unlearn"

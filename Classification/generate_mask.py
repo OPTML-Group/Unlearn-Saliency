@@ -3,18 +3,12 @@ import os
 from collections import OrderedDict
 
 import arg_parser
-import evaluation
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim
 import torch.utils.data
 import unlearn
 import utils
-from scipy.special import erf
-from trainer import validate
 
 
 def save_gradient_ratio(data_loaders, model, criterion, args):
@@ -33,56 +27,35 @@ def save_gradient_ratio(data_loaders, model, criterion, args):
     for name, param in model.named_parameters():
         gradients[name] = 0
 
-    if args.imagenet_arch:
-        device = (
-            torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
-        )
-        for i, data in enumerate(forget_loader):
-            image, target = get_x_y_from_data_dict(data, device)
+    for i, (image, target) in enumerate(forget_loader):
+        image = image.cuda()
+        target = target.cuda()
 
-            # compute output
-            output_clean = model(image)
-            loss = -criterion(output_clean, target)
+        # compute output
+        output_clean = model(image)
+        loss = - criterion(output_clean, target)
 
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+        optimizer.zero_grad()
+        loss.backward()
 
-            with torch.no_grad():
-                for name, param in model.named_parameters():
-                    if param.grad is not None:
-                        gradients[name] += param.grad.data
-
-    else:
-        for i, (image, target) in enumerate(forget_loader):
-            image = image.cuda()
-            target = target.cuda()
-
-            # compute output
-            output_clean = model(image)
-            loss = -criterion(output_clean, target)
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-            with torch.no_grad():
-                for name, param in model.named_parameters():
-                    if param.grad is not None:
-                        gradients[name] += param.grad.data
+        with torch.no_grad():
+            for name, param in model.named_parameters():
+                if param.grad is not None:
+                    gradients[name] += param.grad.data
 
     with torch.no_grad():
         for name in gradients:
             gradients[name] = torch.abs_(gradients[name])
 
-    threshold_list = [0.1, 0.2, 0.3, 0.4, 0.5]
+    threshold_list = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
     for i in threshold_list:
+        print(i)
         sorted_dict_positions = {}
         hard_dict = {}
 
         # Concatenate all tensors into a single tensor
-        all_elements = torch.cat([tensor.flatten() for tensor in gradients.values()])
+        all_elements = - torch.cat([tensor.flatten() for tensor in gradients.values()])
 
         # Calculate the threshold index for the top 10% elements
         threshold_index = int(len(all_elements) * i)
@@ -107,75 +80,11 @@ def save_gradient_ratio(data_loaders, model, criterion, args):
             hard_dict[key] = threshold_tensor
             start_index += num_elements
 
-        all_gradients = torch.cat(
-            [gradient.flatten() for gradient in gradients.values()]
-        )
-
-        sigmoid_gradients = torch.abs(2 * (torch.sigmoid(all_gradients) - 0.5))
-        tanh_gradients = torch.abs(torch.tanh(all_gradients))
-
-        sigmoid_soft_dict = {}
-        tanh_soft_dict = {}
-        start_idx = 0
-        for net_name, gradient in gradients.items():
-            num_params = gradient.numel()
-            end_idx = start_idx + num_params
-            sigmoid_gradient = sigmoid_gradients[start_idx:end_idx]
-            sigmoid_gradient = sigmoid_gradient.reshape(gradient.shape)
-            sigmoid_soft_dict[net_name] = sigmoid_gradient
-
-            tanh_gradient = tanh_gradients[start_idx:end_idx]
-            tanh_gradient = tanh_gradient.reshape(gradient.shape)
-            tanh_soft_dict[net_name] = tanh_gradient
-            start_idx = end_idx
-
-        torch.save(
-            sigmoid_soft_dict,
-            os.path.join(args.save_dir, "sigmoid_soft_{}.pt".format(i)),
-        )
-        torch.save(
-            tanh_soft_dict, os.path.join(args.save_dir, "tanh_soft_{}.pt".format(i))
-        )
-        torch.save(hard_dict, os.path.join(args.save_dir, "hard_{}.pt".format(i)))
-
-
-def load_pth_tar_files(folder_path):
-    pth_tar_files = []
-
-    for root, dirs, files in os.walk(folder_path):
-        for file in files:
-            if file.endswith(".pt"):
-                file_path = os.path.join(root, file)
-                pth_tar_files.append(file_path)
-
-    return pth_tar_files
-
-
-def compute_gradient_ratio(mask_path):
-    mask = torch.load(mask_path)
-    all_elements = torch.cat([tensor.flatten() for tensor in mask.values()])
-    ones_tensor = torch.ones(all_elements.shape)
-    ratio = torch.sum(all_elements) / torch.sum(ones_tensor)
-    name = mask_path.split("/")[-1].replace(".pt", "")
-    return name, ratio
-
-
-def print_gradient_ratio(mask_folder, save_path):
-    ratio_dict = {}
-    mask_path_list = load_pth_tar_files(mask_folder)
-    for i in mask_path_list:
-        name, ratio = compute_gradient_ratio(i)
-        print(name, ratio)
-        ratio_dict[name] = ratio.item()
-
-    ratio_df = pd.DataFrame([ratio_dict])
-    ratio_df.to_csv(save_path + "ratio_df.csv", index=False)
+        torch.save(hard_dict, os.path.join(args.save_dir, "with_{}.pt".format(i)))
 
 
 def main():
     args = arg_parser.parse_args()
-
-    # print(args.choice, type(args.choice), len(args.choice))
 
     if torch.cuda.is_available():
         torch.cuda.set_device(int(args.gpu))
@@ -238,6 +147,7 @@ def main():
         assert len(forget_dataset) + len(retain_dataset) == len(
             train_loader_full.dataset
         )
+
     else:
         try:
             marked = forget_dataset.targets < 0
@@ -285,8 +195,6 @@ def main():
     )
 
     criterion = nn.CrossEntropyLoss()
-
-    evaluation_result = None
 
     if args.resume:
         checkpoint = unlearn.load_unlearn_checkpoint(model, device, args)

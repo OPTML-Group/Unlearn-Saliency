@@ -1,5 +1,5 @@
 # Saliency-Unlearning for Classification
-This is the official repository for Saliency Unlearning for stable diffusion. The code structure of this project is adapted from the [Sparse Unlearn](https://github.com/OPTML-Group/Unlearn-Sparse) codebase.
+This is the official repository for Saliency Unlearning for Clasification. The code structure of this project is adapted from the [Sparse Unlearn](https://github.com/OPTML-Group/Unlearn-Sparse) codebase.
 
 # Generate Saliency Map
 ```

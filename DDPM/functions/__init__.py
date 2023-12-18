@@ -71,7 +71,7 @@ def get_mask_config_and_setup_dirs(args, filename: str):
     config.exp_root_dir = os.path.join(
         f"./results",
         config.data.dataset.lower(),
-        "unlearn",
+        "forget",
         args.method,
         f"{args.alpha}_{mask}",
         timestamp,

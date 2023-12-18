@@ -34,7 +34,7 @@ diffusion:
 
 training:
     batch_size: 128
-    n_iters: 500
+    n_iters: 1000
     snapshot_freq: 100
     log_freq: 100
     visualization_samples: 100

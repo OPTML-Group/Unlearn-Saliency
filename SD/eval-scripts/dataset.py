@@ -1,15 +1,9 @@
 import os
-import random
-from pathlib import Path
-
 import numpy as np
-import torch
 import torchvision.transforms as torch_transforms
 from datasets import load_dataset
-from ldm.util import instantiate_from_config
-from omegaconf import OmegaConf
 from PIL import Image
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 from torchvision.transforms.functional import InterpolationMode
 
 INTERPOLATIONS = {
@@ -101,9 +95,6 @@ class Fake_Imagenette(Dataset):
 def setup_fid_data(class_to_forget, path, image_size, interpolation="bicubic"):
     interpolation = INTERPOLATIONS[interpolation]
     transform = get_transform(interpolation, image_size)
-
-    # real_set = Imagenette('validation', transform=transform)
-    # real_set = random.sample([data[0] for data in real_set if data[1] != class_to_forget], len(fake_set))
 
     real_set = Fake_Imagenette(
         "imagenette_without_label_6", class_to_forget, transform=transform

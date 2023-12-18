@@ -19,7 +19,7 @@ SalUn can be applied to different tasks such as image classification and image g
 
 ## Contributors
 
-* Chongyu Fan
+* [Chongyu Fan](https://a-f1.github.io/)
 * [Jiancheng Liu](https://ljcc0930.github.io/)
 
 ## Cite this work
