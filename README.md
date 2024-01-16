@@ -37,7 +37,7 @@ SalUn can be applied to different tasks such as image classification and image g
 * [Chongyu Fan](https://a-f1.github.io/)
 * [Jiancheng Liu](https://ljcc0930.github.io/)
 
-## Cite this work
+## Cite This Work
 ```
 @article{fan2023salun,
   title={SalUn: Empowering Machine Unlearning via Gradient-based Weight Saliency in Both Image Classification and Generation},
