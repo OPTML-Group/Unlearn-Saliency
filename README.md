@@ -47,7 +47,7 @@ SalUn can be applied to different tasks such as image classification and image g
 }
 ```
 
-## Related works - Machine Unlearning
+## Related Works - Machine Unlearning
 
 * [Sparse Unlearning (l1-sparse)](https://github.com/OPTML-Group/Unlearn-Sparse)
 * [Attacking Unlearned Diffusion (UnlearnDiff)](https://github.com/OPTML-Group/Diffusion-MU-Attack)
