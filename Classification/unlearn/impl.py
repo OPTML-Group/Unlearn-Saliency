@@ -64,86 +64,13 @@ def _iterative_unlearn_impl(unlearn_iter_func):
             # rewind, initialization is a full model architecture without masks
             model.load_state_dict(initialization, strict=True)
             prune_model_custom(model, current_mask)
-
-        if args.surgical:
-            params = list(model.named_parameters())
-            surgical_choices = args.choice
-
-            optimizer = torch.optim.SGD(
-                [
-                    {
-                        "params": [
-                            p
-                            for n, p in params
-                            if any(
-                                n.startswith(surgical_choice)
-                                for surgical_choice in surgical_choices
-                            )
-                        ],
-                        "lr": args.unlearn_lr,
-                    },
-                    {
-                        "params": [
-                            p
-                            for n, p in params
-                            if not any(
-                                n.startswith(surgical_choice)
-                                for surgical_choice in surgical_choices
-                            )
-                        ],
-                        "lr": 0,
-                    },
-                ],
-                momentum=args.momentum,
-                weight_decay=args.weight_decay,
-            )
-            print(
-                [
-                    {
-                        "params": [
-                            n
-                            for n, p in params
-                            if any(
-                                n.startswith(surgical_choice)
-                                for surgical_choice in surgical_choices
-                            )
-                        ],
-                        "lr": args.unlearn_lr,
-                    },
-                    {
-                        "params": [
-                            n
-                            for n, p in params
-                            if not any(
-                                n.startswith(surgical_choice)
-                                for surgical_choice in surgical_choices
-                            )
-                        ],
-                        "lr": 0,
-                    },
-                ]
-            )
-
-            """
-            optimizer = torch.optim.SGD([
-                                        {'params':[p for n,p in params if any(surgical_choice in n for surgical_choice in surgical_choices)], 'lr':args.unlearn_lr},
-                                        {'params':[p for n,p in params if not any(surgical_choice in n for surgical_choice in surgical_choices)], 'lr':0}
-                                        ],
-                                        momentum=args.momentum,
-                                        weight_decay=args.weight_decay)
-            print([
-                  {'params':[n for n,p in params if any(surgical_choice in n for surgical_choice in surgical_choices)], 'lr':args.unlearn_lr},
-                  {'params':[n for n,p in params if not any(surgical_choice in n for surgical_choice in surgical_choices)], 'lr':0}
-                  ])
-            """
-
-        else:
-            optimizer = torch.optim.SGD(
-                model.parameters(),
-                args.unlearn_lr,
-                momentum=args.momentum,
-                weight_decay=args.weight_decay,
-            )
+    
+        optimizer = torch.optim.SGD(
+            model.parameters(),
+            args.unlearn_lr,
+            momentum=args.momentum,
+            weight_decay=args.weight_decay,
+        )
 
         if args.imagenet_arch and args.unlearn == "retrain":
             lambda0 = (
@@ -175,20 +102,11 @@ def _iterative_unlearn_impl(unlearn_iter_func):
         for epoch in range(0, args.unlearn_epochs):
             start_time = time.time()
 
-            if args.surgical:
-                print(
-                    "Epoch #{}, Learning rate: {} and {}".format(
-                        epoch,
-                        optimizer.state_dict()["param_groups"][0]["lr"],
-                        optimizer.state_dict()["param_groups"][1]["lr"],
-                    )
+            print(
+                "Epoch #{}, Learning rate: {}".format(
+                    epoch, optimizer.state_dict()["param_groups"][0]["lr"]
                 )
-            else:
-                print(
-                    "Epoch #{}, Learning rate: {}".format(
-                        epoch, optimizer.state_dict()["param_groups"][0]["lr"]
-                    )
-                )
+            )
 
             train_acc = unlearn_iter_func(
                 data_loaders, model, criterion, optimizer, epoch, args, mask, **kwargs
