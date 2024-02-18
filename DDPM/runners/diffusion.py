@@ -190,89 +190,85 @@ class Diffusion(object):
         with open(os.path.join(args.ckpt_folder, "fisher_dict.pkl"), "wb") as f:
             pickle.dump(fisher_dict, f)
 
+
     def train(self):
-        args, config = self.args, self.config
+            args, config = self.args, self.config
+            D_train_loader = get_dataset(args, config)
+            D_train_iter = cycle(D_train_loader)
+            
+            model = Conditional_Model(config)
 
-        D_remain_loader, D_forget_loader = get_forget_dataset(
-            args, config, args.label_to_forget
-        )
-        D_remain_iter = cycle(D_remain_loader)
-        D_forget_iter = cycle(D_forget_loader)
-
-        model = Conditional_Model(config)
-
-        optimizer = get_optimizer(self.config, model.parameters())
-        model.to(self.device)
-        model = torch.nn.DataParallel(model)
-
-        if self.config.model.ema:
-            ema_helper = EMAHelper(mu=self.config.model.ema_rate)
-            ema_helper.register(model)
-        else:
-            ema_helper = None
-
-        model.train()
-
-        start = time.time()
-        for step in range(0, self.config.training.n_iters):
-            model.train()
-            x, c = next(D_remain_iter)
-            # x, c = next(D_train_iter)
-
-            n = x.size(0)
-            x = x.to(self.device)
-            x = data_transform(self.config, x)
-            e = torch.randn_like(x)
-            b = self.betas
-
-            # antithetic sampling
-            t = torch.randint(low=0, high=self.num_timesteps, size=(n // 2 + 1,)).to(
-                self.device
-            )
-            t = torch.cat([t, self.num_timesteps - t - 1], dim=0)[:n]
-            loss = loss_registry_conditional[config.model.type](model, x, t, c, e, b)
-
-            if (step + 1) % self.config.training.log_freq == 0:
-                end = time.time()
-                logging.info(f"step: {step}, loss: {loss.item()}, time: {end-start}")
-                start = time.time()
-
-            optimizer.zero_grad()
-            loss.backward()
-
-            try:
-                torch.nn.utils.clip_grad_norm_(
-                    model.parameters(), config.optim.grad_clip
-                )
-            except Exception:
-                pass
-            optimizer.step()
-
+            optimizer = get_optimizer(self.config, model.parameters())
+            model.to(self.device)
+            model = torch.nn.DataParallel(model)
+            
             if self.config.model.ema:
-                ema_helper.update(model)
+                ema_helper = EMAHelper(mu=self.config.model.ema_rate)
+                ema_helper.register(model)
+            else:
+                ema_helper = None
+            
+            model.train()
+            
+            start = time.time()
+            for step in range(0, self.config.training.n_iters):
 
-            if (step + 1) % self.config.training.snapshot_freq == 0:
-                states = [
-                    model.state_dict(),
-                    optimizer.state_dict(),
-                    step,
-                ]
+                model.train()
+                x, c = next(D_train_iter)
+                n = x.size(0)
+                x = x.to(self.device)
+                x = data_transform(self.config, x)
+                e = torch.randn_like(x)
+                b = self.betas
+
+                # antithetic sampling
+                t = torch.randint(
+                    low=0, high=self.num_timesteps, size=(n // 2 + 1,)
+                ).to(self.device)
+                t = torch.cat([t, self.num_timesteps - t - 1], dim=0)[:n]
+                loss = loss_registry_conditional[config.model.type](model, x, t, c, e, b)
+                
+                if (step+1) % self.config.training.log_freq  == 0:
+                    end = time.time()
+                    logging.info(
+                        f"step: {step}, loss: {loss.item()}, time: {end-start}"
+                    )
+                    start = time.time()
+                    
+                optimizer.zero_grad()
+                loss.backward()
+
+                try:
+                    torch.nn.utils.clip_grad_norm_(
+                        model.parameters(), config.optim.grad_clip
+                    )
+                except Exception:
+                    pass
+                optimizer.step()
+
                 if self.config.model.ema:
-                    states.append(ema_helper.state_dict())
+                    ema_helper.update(model)
 
-                torch.save(
-                    states,
-                    os.path.join(self.config.ckpt_dir, "ckpt.pth"),
-                )
+                if (step+1) % self.config.training.snapshot_freq == 0:
+                    states = [
+                        model.state_dict(),
+                        optimizer.state_dict(),
+                        step,
+                    ]
+                    if self.config.model.ema:
+                        states.append(ema_helper.state_dict())
 
-                test_model = (
-                    ema_helper.ema_copy(model)
-                    if self.config.model.ema
-                    else copy.deepcopy(model)
-                )
-                test_model.eval()
-                self.sample_visualization(test_model, step, args.cond_scale)
-                del test_model
+                    torch.save(
+                        states,
+                        os.path.join(self.config.ckpt_dir, "ckpt.pth"),
+                    )
+                    #torch.save(states, os.path.join(self.config.ckpt_dir, "ckpt_latest.pth"))
+
+                    test_model = ema_helper.ema_copy(model) if self.config.model.ema else copy.deepcopy(model)
+                    test_model.eval()
+                    self.sample_visualization(test_model, step, args.cond_scale)
+                    del test_model
+
 
     def train_forget(self):
         args, config = self.args, self.config
@@ -399,39 +395,35 @@ class Diffusion(object):
                 self.sample_visualization(test_model, step, args.cond_scale)
                 del test_model
 
+
     def retrain(self):
         args, config = self.args, self.config
 
-        D_remain_loader, D_forget_loader = get_forget_dataset(
+        D_remain_loader, _ = get_forget_dataset(
             args, config, args.label_to_forget
         )
         D_remain_iter = cycle(D_remain_loader)
-        D_forget_iter = cycle(D_forget_loader)
 
-        print("Loading checkpoints {}".format(args.ckpt_folder))
         model = Conditional_Model(config)
-        states = torch.load(
-            os.path.join(args.ckpt_folder, "ckpts/ckpt.pth"),
-            map_location=self.device,
-        )
-        model = model.to(self.device)
+
+        optimizer = get_optimizer(self.config, model.parameters())
+        model.to(self.device)
         model = torch.nn.DataParallel(model)
-        model.load_state_dict(states[0], strict=True)
-        optimizer = get_optimizer(config, model.parameters())
 
         if self.config.model.ema:
-            ema_helper = EMAHelper(mu=config.model.ema_rate)
+            ema_helper = EMAHelper(mu=self.config.model.ema_rate)
             ema_helper.register(model)
-            ema_helper.load_state_dict(states[-1])
-            # model = ema_helper.ema_copy(model_no_ema)
         else:
             ema_helper = None
 
         model.train()
+
         start = time.time()
         for step in range(0, self.config.training.n_iters):
             model.train()
             x, c = next(D_remain_iter)
+            # x, c = next(D_train_iter)
+
             n = x.size(0)
             x = x.to(self.device)
             x = data_transform(self.config, x)

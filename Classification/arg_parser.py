@@ -139,6 +139,7 @@ def parse_args():
     parser.add_argument("--alpha", default=0.2, type=float, help="unlearn noise")
 
     parser.add_argument("--path", default=None, type=str, help="mask matrix")
+    parser.add_argument('--num_iter', default=None, type=int, help='the number of iteration')
 
     ##################################### Attack setting #################################################
     parser.add_argument(
