@@ -4,7 +4,11 @@
 
 [![preprint](https://img.shields.io/static/v1?label=arXiv&message=2310.12508&color=B31B1B)](https://arxiv.org/abs/2310.12508)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Venue:ICLR 2024](https://img.shields.io/badge/Venue-ICLR%202024-007CFF)](https://iclr.cc/Conferences/2024)
+[![Venue:ICLR 2024](https://img.shields.io/badge/Venue-ICLR%202024%20(Spotlight)-007CFF)](https://iclr.cc/Conferences/2024)
+
+[![GitHub top language](https://img.shields.io/github/languages/top/OPTML-Group/Unlearn-Saliency)](https://github.com/OPTML-Group/Unlearn-Saliency)
+[![GitHub repo size](https://img.shields.io/github/repo-size/OPTML-Group/Unlearn-Saliency)](https://github.com/OPTML-Group/Unlearn-Saliency)
+[![GitHub stars](https://img.shields.io/github/stars/OPTML-Group/Unlearn-Saliency)](https://github.com/OPTML-Group/Unlearn-Saliency)
 
 <table align="center">
   <tr>
@@ -46,8 +50,3 @@ SalUn can be applied to different tasks such as image classification and image g
   year={2023}
 }
 ```
-
-## Related Works - Machine Unlearning
-
-* [Sparse Unlearning (l1-sparse)](https://github.com/OPTML-Group/Unlearn-Sparse)
-* [Attacking Unlearned Diffusion (UnlearnDiff)](https://github.com/OPTML-Group/Diffusion-MU-Attack)
