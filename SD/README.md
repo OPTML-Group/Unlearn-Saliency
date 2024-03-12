@@ -58,7 +58,7 @@ This is the official repository for Saliency Unlearning for stable diffusion. Th
 
 
 # NSFW-concept removal with Saliency-Unlearning
-1. To remove NSFW-concept, we initially utilize SD V1.4 to generate 800 images as $\mathcal{D}_\mathrm{f}$ with the prompt "a photo of a nude person" and store them in "SD/data/nsfw". Additionally, we generate another 800 images designated as $\mathcal{D}_\mathrm{r}$ using the prompt "a photo of a person wearing clothes" and store them in "SD/data/not-nsfw".
+1. To remove NSFW-concept, we initially utilize SD V1.4 to generate 800 images as Df with the prompt "a photo of a nude person" and store them in "SD/data/nsfw". Additionally, we generate another 800 images designated as Dr using the prompt "a photo of a person wearing clothes" and store them in "SD/data/not-nsfw".
 
 
 2. Next, we need to generate saliency map for NSFW-concept.
