@@ -13,9 +13,9 @@
 <table align="center">
   <tr>
     <td align="center"> 
-      <img src="Images/teaser-v2.png" alt="Image 1" style="width: 700px;"/> 
+      <img src="Images/transition_new.gif" alt="Examples" style="width: 700px;"/> 
       <br>
-      <em style="font-size: 18px;">  <strong style="font-size: 18px;">Figure 1:</strong> Schematic overview of our proposal on Saliency Unlearning (SalUn).</em>
+      <em style="font-size: 18px;">  <strong style="font-size: 18px;">Figure 1:</strong> Example comparison of pre/after unlearning by SalUn..</em>
     </td>
   </tr>
 </table>
@@ -28,6 +28,17 @@ This is the official code repository for the ICLR 2024 Spotlight paper [SalUn: E
 ## Abstract
 
 With evolving data regulations, machine unlearning (MU) has become an important tool for fostering trust and safety in today's AI models. However, existing MU methods focusing on data and/or weight perspectives often suffer limitations in unlearning accuracy, stability, and cross-domain applicability. To address these challenges, we introduce the concept of 'weight saliency' for MU, drawing parallels with input saliency in model explanation. This innovation directs MU's attention toward specific model weights rather than the entire model, improving effectiveness and efficiency. The resultant method that we call *saliency unlearning* (SalUn) narrows the performance gap with 'exact' unlearning (model retraining from scratch after removing the forgetting data points). To the best of our knowledge, SalUn is the first principled MU approach that can effectively erase the influence of forgetting data, classes, or concepts in both image classification and generation tasks. As highlighted below, For example, SalUn yields a stability advantage in high-variance random data forgetting, *e.g.*, with a 0.2% gap compared to exact unlearning on the CIFAR-10 dataset. Moreover, in preventing conditional diffusion models from generating harmful images, SalUn achieves nearly 100% unlearning accuracy, outperforming current state-of-the-art baselines like Erased Stable Diffusion and Forget-Me-Not.
+
+
+<table align="center">
+  <tr>
+    <td align="center"> 
+      <img src="Images/teaser-v2.png" alt="Teaser" style="width: 700px;"/> 
+      <br>
+      <em style="font-size: 18px;">  <strong style="font-size: 18px;">Figure 2:</strong> Schematic overview of our proposal on Saliency Unlearning (SalUn).</em>
+    </td>
+  </tr>
+</table>
 
 ## Getting Started
 SalUn can be applied to different tasks such as image classification and image generation. You can click the link below to access a more detailed installation guide.
