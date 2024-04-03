@@ -47,6 +47,28 @@ SalUn can be applied to different tasks such as image classification and image g
   * [Classifier-free Guidance DDPM](DDPM/README.md)
   * [Stable Diffusion](SD/README.md)
 
+## Examples
+
+<table align="center">
+  <tr>
+    <td align="center"> 
+      <img src="Images/church.jpg" alt="Church unlearn" style="width: 700px;"/> 
+      <br>
+      <em style="font-size: 18px;">  <strong style="font-size: 18px;">Figure 3:</strong> Class-wise unlearning by SalUn on Stable Diffusion for the "Church" class.</em>
+    </td>
+  </tr>
+</table>
+
+<table align="center">
+  <tr>
+    <td align="center"> 
+      <img src="Images/nudity.jpg" alt="Nudity unlearn" style="width: 700px;"/> 
+      <br>
+      <em style="font-size: 18px;">  <strong style="font-size: 18px;">Figure 4:</strong> Concept unlearning by SalUn on Stable Diffusion for the "Nudity" concept.</em>
+    </td>
+  </tr>
+</table>
+
 ## Contributors
 
 * [Chongyu Fan](https://a-f1.github.io/)
