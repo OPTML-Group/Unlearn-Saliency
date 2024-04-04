@@ -159,6 +159,5 @@ def RL_proximal(data_loaders, model, criterion, optimizer, epoch, args, mask=Non
                      'Time {3:.2f}'.format(
                          epoch, i, loader_len, end-start, loss=losses, top1=top1))
                start = time.time()
-
-
+               
     return top1.avg

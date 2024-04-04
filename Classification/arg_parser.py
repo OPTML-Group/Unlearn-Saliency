@@ -2,7 +2,7 @@ import argparse
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="PyTorch Lottery Tickets Experiments")
+    parser = argparse.ArgumentParser(description="Classification of SalUn Experiments")
 
     ##################################### Dataset #################################################
     parser.add_argument(
@@ -20,6 +20,7 @@ def parse_args():
     )
     parser.add_argument("--num_workers", type=int, default=4)
     parser.add_argument("--num_classes", type=int, default=10)
+
     ##################################### Architecture ############################################
     parser.add_argument(
         "--arch", type=str, default="resnet18", help="model architecture"
@@ -41,6 +42,7 @@ def parse_args():
         default="./labels/val_ys.pth",
         help="labels for validation files",
     )
+
     ##################################### General setting ############################################
     parser.add_argument("--seed", default=2, type=int, help="random seed")
     parser.add_argument(
@@ -61,7 +63,7 @@ def parse_args():
         default=None,
         type=str,
     )
-    parser.add_argument("--mask", type=str, default=None, help="sparse model")
+    parser.add_argument("--model_path", type=str, default=None, help="the path of original model")
 
     ##################################### Training setting #################################################
     parser.add_argument("--batch_size", type=int, default=256, help="batch size")
@@ -81,6 +83,7 @@ def parse_args():
         help="No augmentation in training dataset (transformation).",
     )
     parser.add_argument("--no-l1-epochs", default=0, type=int, help="non l1 epochs")
+
     ##################################### Pruning setting #################################################
     parser.add_argument("--prune", type=str, default="omp", help="method to prune")
     parser.add_argument(
@@ -137,18 +140,6 @@ def parse_args():
         help="Specific index data to forget",
     )
     parser.add_argument("--alpha", default=0.2, type=float, help="unlearn noise")
+    parser.add_argument("--mask_path", default=None, type=str, help="the path of saliency map")
 
-    parser.add_argument("--path", default=None, type=str, help="mask matrix")
-    parser.add_argument('--num_iter', default=None, type=int, help='the number of iteration')
-
-    ##################################### Attack setting #################################################
-    parser.add_argument(
-        "--attack", type=str, default="backdoor", help="method to unlearn"
-    )
-    parser.add_argument(
-        "--trigger_size",
-        type=int,
-        default=4,
-        help="The size of trigger of backdoor attack",
-    )
     return parser.parse_args()

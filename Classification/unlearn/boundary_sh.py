@@ -74,8 +74,7 @@ def boundary_shrink_iter(
             for name, param in model.named_parameters():
                 if param.grad is not None:
                     param.grad *= mask[name]
-                    # print(mask[name])
-
+                    
         optimizer.step()
 
         output = output_clean.float()

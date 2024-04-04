@@ -2,10 +2,6 @@ import sys
 import time
 
 import torch
-
-sys.path.append("/mnt/home/jiajingh/Unlearn-Sparse/trainer")
-sys.path.append("/mnt/home/jiajingh/Unlearn-Sparse/pruner")
-sys.path.append("/mnt/home/jiajingh/Unlearn-Sparse/")
 import os
 from copy import deepcopy
 

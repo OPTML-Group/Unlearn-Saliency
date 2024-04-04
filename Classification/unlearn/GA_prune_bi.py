@@ -2,10 +2,6 @@ import sys
 import time
 
 import torch
-
-sys.path.append("/mnt/home/jiajingh/Unlearn-Sparse/trainer")
-sys.path.append("/mnt/home/jiajingh/Unlearn-Sparse/pruner")
-sys.path.append("/mnt/home/jiajingh/Unlearn-Sparse/")
 import os
 from copy import deepcopy
 
@@ -93,23 +89,11 @@ def GA_prune_bi(data_loaders, model, criterion, args):
         "######################################## Start Standard Training Iterative Pruning ########################################"
     )
 
-    # for state in range(start_state, args.pruning_times):
-
-    #     print('******************************************')
-    #     print('pruning state', state)
-    #     print('******************************************')
-
     check_sparsity(model)
     state = 0
     for epoch in range(start_epoch, args.epochs):
         start_time = time.time()
         print(optimizer.state_dict()["param_groups"][0]["lr"])
-        # if state == 0:
-        #     if (epoch) == args.rewind_epoch:
-        #         torch.save(model.state_dict(), os.path.join(
-        #             args.save_dir, 'epoch_{}_rewind_weight.pt'.format(epoch+1)))
-        #         if args.prune_type == 'rewind_lt':
-        #             initalization = deepcopy(model.state_dict())
         acc = GA(train_loader, model, criterion, optimizer, epoch, args)
 
         # evaluate on validation set
@@ -172,8 +156,5 @@ def GA_prune_bi(data_loaders, model, criterion, args):
             pruning_model(model, args.rate)
 
         remain_weight = check_sparsity(model)
-
-        # weight rewinding
-        # rewind, initialization is a full model architecture without masks
 
     return model

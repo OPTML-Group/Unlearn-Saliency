@@ -10,10 +10,7 @@ import torch.optim
 import torch.utils.data
 import unlearn
 import utils
-
-# import pruner
 from trainer import validate
-
 
 def main():
     args = arg_parser.parse_args()
@@ -144,7 +141,7 @@ def main():
     if args.resume and checkpoint is not None:
         model, evaluation_result = checkpoint
     else:
-        checkpoint = torch.load(args.mask, map_location=device)
+        checkpoint = torch.load(args.model_path, map_location=device)
         if "state_dict" in checkpoint.keys():
             checkpoint = checkpoint["state_dict"]
 
@@ -201,55 +198,8 @@ def main():
         )
         unlearn.save_unlearn_checkpoint(model, evaluation_result, args)
 
-    """training privacy MIA:
-        in distribution: retain
-        out of distribution: test
-        target: (retain, test)"""
-    if "SVC_MIA_training_privacy" not in evaluation_result:
-        test_len = len(test_loader.dataset)
-        retain_len = len(retain_dataset)
-        num = test_len // 2
-
-        utils.dataset_convert_to_test(retain_dataset, args)
-        utils.dataset_convert_to_test(forget_loader, args)
-        utils.dataset_convert_to_test(test_loader, args)
-
-        shadow_train = torch.utils.data.Subset(retain_dataset, list(range(num)))
-        target_train = torch.utils.data.Subset(
-            retain_dataset, list(range(num, retain_len))
-        )
-        shadow_test = torch.utils.data.Subset(test_loader.dataset, list(range(num)))
-        target_test = torch.utils.data.Subset(
-            test_loader.dataset, list(range(num, test_len))
-        )
-
-        shadow_train_loader = torch.utils.data.DataLoader(
-            shadow_train, batch_size=args.batch_size, shuffle=False
-        )
-        shadow_test_loader = torch.utils.data.DataLoader(
-            shadow_test, batch_size=args.batch_size, shuffle=False
-        )
-
-        target_train_loader = torch.utils.data.DataLoader(
-            target_train, batch_size=args.batch_size, shuffle=False
-        )
-        target_test_loader = torch.utils.data.DataLoader(
-            target_test, batch_size=args.batch_size, shuffle=False
-        )
-
-        evaluation_result["SVC_MIA_training_privacy"] = evaluation.SVC_MIA(
-            shadow_train=shadow_train_loader,
-            shadow_test=shadow_test_loader,
-            target_train=target_train_loader,
-            target_test=target_test_loader,
-            model=model,
-        )
-        unlearn.save_unlearn_checkpoint(model, evaluation_result, args)
-
     unlearn.save_unlearn_checkpoint(model, evaluation_result, args)
 
 
 if __name__ == "__main__":
     main()
-
-    # python -u main_forget.py  --save_dir './_results/forget/class/seed3/FT' --mask './temp_results/cifar10/origin/0model_SA_best.pth.tar' --unlearn FT --class_to_replace 0 --seed 3 --dataset cifar10 --unlearn_epochs 1 --unlearn_lr 0.1

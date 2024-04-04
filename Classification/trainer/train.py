@@ -134,26 +134,3 @@ def train(train_loader, model, criterion, optimizer, epoch, args, mask=None, l1=
         print("train_accuracy {top1.avg:.3f}".format(top1=top1))
 
     return top1.avg
-
-
-def train_with_rewind(model, optimizer, scheduler, train_loader, criterion, args):
-    rewind_state_dict = None
-    for epoch in range(args.epochs):
-        start_time = time.time()
-        print(optimizer.state_dict()["param_groups"][0]["lr"])
-        train(train_loader, model, criterion, optimizer, epoch, args)
-
-        if (epoch + 1) == args.rewind_epoch:
-            torch.save(
-                model.state_dict(),
-                os.path.join(
-                    args.save_dir, "epoch_{}_rewind_weight.pt".format(epoch + 1)
-                ),
-            )
-            if args.prune_type == "rewind_lt":
-                rewind_state_dict = copy.deepcopy(model.state_dict())
-
-        scheduler.step()
-        print("one epoch duration:{}".format(time.time() - start_time))
-
-    return rewind_state_dict

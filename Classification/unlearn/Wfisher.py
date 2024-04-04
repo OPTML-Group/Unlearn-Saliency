@@ -116,7 +116,6 @@ def Wfisher(data_loaders, model, criterion, args, mask=None):
 
     forget_grad = torch.zeros_like(torch.cat(params)).to(device)
     retain_grad = torch.zeros_like(torch.cat(params)).to(device)
-    # print(forget_grad)
 
     total = 0
     model.eval()

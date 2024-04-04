@@ -14,7 +14,7 @@ def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
     retain_loader = data_loaders["retain"]
     forget_dataset = deepcopy(forget_loader.dataset)
     
-    if args.dataset == "cifar10" or args.dataset == "cifar100" or args.dataset == "TinyImagenet":
+    if args.dataset == "cifar100" or args.dataset == "TinyImagenet":
         try:
             forget_dataset.targets = np.random.randint(0, args.num_classes, forget_dataset.targets.shape)
         except:
@@ -42,21 +42,7 @@ def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
             i = it + len(forget_loader)
             image = image.cuda()
             target = target.cuda()
-
-            if args.arch == "clip":
-                image = preprocess(image)
-                # Calculate features
-                image_features = model.encode_image(image)
-                with torch.no_grad():
-                    text_features = model.encode_text(text_inputs)
-
-                image_features = image_features / image_features.norm(dim=-1, keepdim=True)
-                text_features = text_features / text_features.norm(dim=-1, keepdim=True)
-                output_clean = (100.0 * image_features @ text_features.T).softmax(dim=-1)
-
-            else:
-                # compute output
-                output_clean = model(image)
+            output_clean = model(image)
 
             loss = criterion(output_clean, target)
       
@@ -87,7 +73,7 @@ def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
                           epoch, i, loader_len, end-start, loss=losses, top1=top1))
                 start = time.time()
       
-    elif args.dataset == "svhn":
+    elif args.dataset == "cifar10" or args.dataset == "svhn":
         losses = utils.AverageMeter()
         top1 = utils.AverageMeter()
       
@@ -153,6 +139,5 @@ def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
                      'Time {3:.2f}'.format(
                          epoch, i, loader_len, end-start, loss=losses, top1=top1))
                start = time.time()
-
 
     return top1.avg

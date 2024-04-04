@@ -50,7 +50,6 @@ def GA(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
                 for name, param in model.named_parameters():
                     if param.grad is not None:
                         param.grad *= mask[name]
-                        # print(mask[name])
 
             optimizer.step()
 

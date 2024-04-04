@@ -105,7 +105,6 @@ def main():
         marked_loader,
     ) = utils.setup_model_dataset(args)
     model.cuda()
-    # print(model.state_dict())
 
     def replace_loader_dataset(
         dataset, batch_size=args.batch_size, seed=1, shuffle=True
@@ -202,14 +201,12 @@ def main():
     if args.resume and checkpoint is not None:
         model, evaluation_result = checkpoint
     else:
-        checkpoint = torch.load(args.mask, map_location=device)
+        checkpoint = torch.load(args.model_path, map_location=device)
         if "state_dict" in checkpoint.keys():
             checkpoint = checkpoint["state_dict"]
-
-        if args.unlearn != "retrain":
             model.load_state_dict(checkpoint, strict=False)
 
-        save_gradient_ratio(unlearn_data_loaders, model, criterion, args)
+    save_gradient_ratio(unlearn_data_loaders, model, criterion, args)
 
 
 if __name__ == "__main__":
