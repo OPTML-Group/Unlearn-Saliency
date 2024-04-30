@@ -15,11 +15,6 @@
 [![GitHub stars](https://img.shields.io/github/stars/OPTML-Group/Unlearn-Saliency)](https://github.com/OPTML-Group/Unlearn-Saliency)
 </div>
 
-This is the official code repository for the ICLR 2024 Spotlight paper [SalUn: Empowering Machine Unlearning via Gradient-based Weight Saliency in Both Image Classification and Generation](https://arxiv.org/abs/2310.12508).
-
-
-## Abstract
-
 <table align="center">
   <tr>
     <td align="center"> 
@@ -29,6 +24,11 @@ This is the official code repository for the ICLR 2024 Spotlight paper [SalUn: E
     </td>
   </tr>
 </table>
+
+This is the official code repository for the ICLR 2024 Spotlight paper [SalUn: Empowering Machine Unlearning via Gradient-based Weight Saliency in Both Image Classification and Generation](https://arxiv.org/abs/2310.12508).
+
+
+## Abstract
 
 With evolving data regulations, machine unlearning (MU) has become an important tool for fostering trust and safety in today's AI models. However, existing MU methods focusing on data and/or weight perspectives often suffer limitations in unlearning accuracy, stability, and cross-domain applicability. To address these challenges, we introduce the concept of 'weight saliency' for MU, drawing parallels with input saliency in model explanation. This innovation directs MU's attention toward specific model weights rather than the entire model, improving effectiveness and efficiency. The resultant method that we call *saliency unlearning* (SalUn) narrows the performance gap with 'exact' unlearning (model retraining from scratch after removing the forgetting data points). To the best of our knowledge, SalUn is the first principled MU approach that can effectively erase the influence of forgetting data, classes, or concepts in both image classification and generation tasks. As highlighted below, For example, SalUn yields a stability advantage in high-variance random data forgetting, *e.g.*, with a 0.2% gap compared to exact unlearning on the CIFAR-10 dataset. Moreover, in preventing conditional diffusion models from generating harmful images, SalUn achieves nearly 100% unlearning accuracy, outperforming current state-of-the-art baselines like Erased Stable Diffusion and Forget-Me-Not.
 
