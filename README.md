@@ -2,9 +2,12 @@
  
 # SalUn: Empowering Machine Unlearning via Gradient-based Weight Saliency in Both Image Classification and Generation
 
+**WARNING: This repository contains model outputs that may be offensive in nature.**
+
 [![preprint](https://img.shields.io/static/v1?label=arXiv&message=2310.12508&color=B31B1B)](https://arxiv.org/abs/2310.12508)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Venue:ICLR 2024](https://img.shields.io/badge/Venue-ICLR%202024%20(Spotlight)-007CFF)](https://iclr.cc/Conferences/2024)
+[![project page](https://img.shields.io/badge/Project_Page-Link-green)](https://www.optml-group.com/posts/salun_iclr24)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Venue:ICLR 2024](https://img.shields.io/badge/Venue-ICLR%202024%20(Spotlight)-007CFF)](https://iclr.cc/virtual/2024/poster/18130)
 
 [![GitHub top language](https://img.shields.io/github/languages/top/OPTML-Group/Unlearn-Saliency)](https://github.com/OPTML-Group/Unlearn-Saliency)
 [![GitHub repo size](https://img.shields.io/github/repo-size/OPTML-Group/Unlearn-Saliency)](https://github.com/OPTML-Group/Unlearn-Saliency)
@@ -23,7 +26,6 @@
 
 This is the official code repository for the ICLR 2024 Spotlight paper [SalUn: Empowering Machine Unlearning via Gradient-based Weight Saliency in Both Image Classification and Generation](https://arxiv.org/abs/2310.12508).
 
-**WARNING**: This repository contains model outputs that may be offensive in nature.
 
 ## Abstract
 
