@@ -50,7 +50,9 @@ SalUn can be applied to different tasks such as image classification and image g
   * [Classifier-free Guidance DDPM](DDPM/README.md)
   * [Stable Diffusion](SD/README.md)
 
-## Examples
+## Examples of Unlearning on Stable Diffusion
+
+See our [project page](https://www.optml-group.com/posts/salun_iclr24) for more visualizations!
 
 <table align="center">
   <tr>
