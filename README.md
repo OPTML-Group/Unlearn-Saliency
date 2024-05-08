@@ -16,6 +16,20 @@
 [![GitHub stars](https://img.shields.io/github/stars/OPTML-Group/Unlearn-Saliency)](https://github.com/OPTML-Group/Unlearn-Saliency)
 </div>
 
+
+<table align="center">
+  <tr>
+    <td align="center"> 
+      <img src="Images/thubnail_salun.jpg" alt="Examples" style="width: 400px;"/> 
+    </td>
+  </tr>
+</table>
+
+This is the official code repository for the ICLR 2024 Spotlight paper [SalUn: Empowering Machine Unlearning via Gradient-based Weight Saliency in Both Image Classification and Generation](https://arxiv.org/abs/2310.12508).
+
+**NEW RELEASED:** Feel free to check out our [new work](https://github.com/OPTML-Group/Unlearn-WorstCase) about **a new perspective of evaluation** on Machine Unlearning!
+
+
 <table align="center">
   <tr>
     <td align="center"> 
@@ -25,11 +39,6 @@
     </td>
   </tr>
 </table>
-
-This is the official code repository for the ICLR 2024 Spotlight paper [SalUn: Empowering Machine Unlearning via Gradient-based Weight Saliency in Both Image Classification and Generation](https://arxiv.org/abs/2310.12508).
-
-**NEW RELEASED:** Feel free to check out our [new work](https://github.com/OPTML-Group/Unlearn-WorstCase) about **a new perspective of evaluation** on Machine Unlearning!
-
 
 ## Abstract
 
