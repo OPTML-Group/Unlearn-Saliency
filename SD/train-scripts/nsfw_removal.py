@@ -62,11 +62,9 @@ def nsfw_removal(
         # train only x attention layers
         if train_method == "xattn":
             if "attn2" in name:
-                print(name)
                 parameters.append(param)
         # train all layers
         if train_method == "full":
-            # print(name)
             parameters.append(param)
     # set model to train
     model.train()
@@ -151,14 +149,12 @@ def nsfw_removal(
 
                 if mask_path:
                     for n, p in model.named_parameters():
-                        if p.grad is not None and n in parameters:
+                        if p.grad is not None:
                             p.grad *= mask[n.split("model.diffusion_model.")[-1]].to(
                                 device
                             )
-                            print(n)
 
                 optimizer.step()
-
                 time.set_description("Epoch %i" % epoch)
                 time.set_postfix(loss=loss.item() / batch_size)
                 sleep(0.1)

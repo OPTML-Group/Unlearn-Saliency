@@ -22,8 +22,6 @@ def validate(val_loader, model, criterion, args):
                 output = model(image)
                 loss = criterion(output, target)
 
-            # print(output.shape, output)
-            # print(target.shape, target)
             output = output.float()
             loss = loss.float()
 
@@ -52,8 +50,6 @@ def validate(val_loader, model, criterion, args):
                 output = model(image)
                 loss = criterion(output, target)
 
-            # print(output.shape, output)
-            # print(target.shape, target)
             output = output.float()
             loss = loss.float()
 

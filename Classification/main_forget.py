@@ -59,7 +59,6 @@ def main():
         except:
             forget_dataset.labels = -forget_dataset.labels[marked] - 1
         forget_loader = replace_loader_dataset(forget_dataset, seed=seed, shuffle=True)
-        print(len(forget_dataset))
         retain_dataset = copy.deepcopy(marked_loader.dataset)
         try:
             marked = retain_dataset.targets >= 0
@@ -71,7 +70,6 @@ def main():
         except:
             retain_dataset.labels = retain_dataset.labels[marked]
         retain_loader = replace_loader_dataset(retain_dataset, seed=seed, shuffle=True)
-        print(len(retain_dataset))
         assert len(forget_dataset) + len(retain_dataset) == len(
             train_loader_full.dataset
         )
@@ -83,7 +81,6 @@ def main():
             forget_loader = replace_loader_dataset(
                 forget_dataset, seed=seed, shuffle=True
             )
-            print(len(forget_dataset))
             retain_dataset = copy.deepcopy(marked_loader.dataset)
             marked = retain_dataset.targets >= 0
             retain_dataset.data = retain_dataset.data[marked]
@@ -91,7 +88,6 @@ def main():
             retain_loader = replace_loader_dataset(
                 retain_dataset, seed=seed, shuffle=True
             )
-            print(len(retain_dataset))
             assert len(forget_dataset) + len(retain_dataset) == len(
                 train_loader_full.dataset
             )
@@ -102,7 +98,6 @@ def main():
             forget_loader = replace_loader_dataset(
                 forget_dataset, seed=seed, shuffle=True
             )
-            print(len(forget_dataset))
             retain_dataset = copy.deepcopy(marked_loader.dataset)
             marked = retain_dataset.targets >= 0
             retain_dataset.imgs = retain_dataset.imgs[marked]
@@ -110,7 +105,6 @@ def main():
             retain_loader = replace_loader_dataset(
                 retain_dataset, seed=seed, shuffle=True
             )
-            print(len(retain_dataset))
             assert len(forget_dataset) + len(retain_dataset) == len(
                 train_loader_full.dataset
             )
@@ -121,18 +115,7 @@ def main():
         retain=retain_loader, forget=forget_loader, val=val_loader, test=test_loader
     )
 
-    """
-    print('val dataset:')
-    for i, (image, target) in enumerate(val_loader):
-        print(target)
-    
-    print('test dataset:')   
-    for i, (image, target) in enumerate(test_loader):
-        print(target)
-    """
-
     criterion = nn.CrossEntropyLoss()
-
     evaluation_result = None
 
     if args.resume:
@@ -158,7 +141,6 @@ def main():
     if "new_accuracy" not in evaluation_result:
         accuracy = {}
         for name, loader in unlearn_data_loaders.items():
-            print(name)
             utils.dataset_convert_to_test(loader.dataset, args)
             val_acc = validate(loader, model, criterion, args)
             accuracy[name] = val_acc

@@ -30,7 +30,6 @@ best_sa = 0
 def main():
     global args, best_sa
     args = arg_parser.parse_args()
-    print(args)
 
     torch.cuda.set_device(int(args.gpu))
     os.makedirs(args.save_dir, exist_ok=True)
@@ -89,7 +88,6 @@ def main():
             args.checkpoint, map_location=torch.device("cuda:" + str(args.gpu))
         )
         best_sa = checkpoint["best_sa"]
-        print(best_sa)
         start_epoch = checkpoint["epoch"]
         all_result = checkpoint["result"]
 

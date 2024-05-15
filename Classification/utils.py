@@ -143,7 +143,6 @@ def setup_model_dataset(args):
         setup_seed(args.train_seed)
 
         model.normalize = normalization
-        print(model)
         return model, train_full_loader, val_loader, test_loader, marked_loader
     elif args.dataset == "svhn":
         classes = 10
@@ -170,7 +169,6 @@ def setup_model_dataset(args):
             model = model_dict[args.arch](num_classes=classes)
 
         model.normalize = normalization
-        print(model)
         return model, train_full_loader, val_loader, test_loader, marked_loader
     elif args.dataset == "cifar100":
         classes = 100
@@ -197,7 +195,6 @@ def setup_model_dataset(args):
         else:
             model = model_dict[args.arch](num_classes=classes)
         model.normalize = normalization
-        print(model)
         return model, train_full_loader, val_loader, test_loader, marked_loader
     elif args.dataset == "TinyImagenet":
         classes = 200
@@ -225,7 +222,6 @@ def setup_model_dataset(args):
             model = model_dict[args.arch](num_classes=classes)
 
         model.normalize = normalization
-        print(model)
         return model, train_full_loader, val_loader, test_loader, marked_loader
 
     elif args.dataset == "imagenet":
@@ -238,7 +234,6 @@ def setup_model_dataset(args):
         model = model_dict[args.arch](num_classes=classes, imagenet=True)
 
         model.normalize = normalization
-        print(model)
         if args.class_to_replace is None:
             loaders = prepare_data(dataset="imagenet", batch_size=args.batch_size)
             train_loader, val_loader = loaders["train"], loaders["val"]
@@ -287,8 +282,6 @@ def setup_model_dataset(args):
         model = model_dict[args.arch](num_classes=classes)
 
     model.normalize = normalization
-    print(model)
-
     return model, train_set_loader, val_loader, test_loader
 
 

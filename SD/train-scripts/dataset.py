@@ -136,7 +136,6 @@ def setup_ga_data(class_to_forget, batch_size, image_size, interpolation="bicubi
     train_set = Imagenette("train", transform=transform)
     descriptions = [f"an image of a {label}" for label in train_set.class_to_idx.keys()]
     filtered_data = [data for data in train_set if data[1] == class_to_forget]
-    # print(len(filtered_data), train_set[0], filtered_data[0])
 
     train_dl = DataLoader(filtered_data, batch_size=batch_size, shuffle=True)
     return train_dl, descriptions
@@ -149,7 +148,6 @@ def setup_remain_data(class_to_forget, batch_size, image_size, interpolation="bi
     train_set = Imagenette("train", transform=transform)
     descriptions = [f"an image of a {label}" for label in train_set.class_to_idx.keys()]
     filtered_data = [data for data in train_set if data[1] != class_to_forget]
-    # print(len(filtered_data), train_set[0], filtered_data[0])
 
     train_dl = DataLoader(filtered_data, batch_size=batch_size, shuffle=True)
     return train_dl, descriptions
@@ -161,9 +159,7 @@ def setup_forget_data(class_to_forget, batch_size, image_size, interpolation="bi
 
     train_set = Imagenette("train", transform=transform)
     descriptions = [f"an image of a {label}" for label in train_set.class_to_idx.keys()]
-    print(train_set[0][1], type(train_set[0][1]))
     filtered_data = [data for data in train_set if data[1] == class_to_forget]
-    print(batch_size, len(filtered_data), descriptions)
     train_dl = DataLoader(filtered_data, batch_size=batch_size)
     return train_dl, descriptions
 

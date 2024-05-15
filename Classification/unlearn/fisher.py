@@ -43,7 +43,6 @@ def fisher(data_loaders, model, criterion, args):
             max=1e-3
         ) * torch.empty_like(parameter).normal_(0, 1)
         noise = noise * 10 if parameter.shape[-1] == 10 else noise
-        print(torch.max(noise))
         parameter.data = parameter.data + noise
     return model
 

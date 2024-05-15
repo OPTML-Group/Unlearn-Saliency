@@ -49,11 +49,9 @@ def gradient_ascent(
         # train only x attention layers
         if train_method == "xattn":
             if "attn2" in name:
-                print(name)
                 parameters.append(param)
         # train all layers
         if train_method == "full":
-            # print(name)
             parameters.append(param)
 
     optimizer = torch.optim.Adam(parameters, lr=lr)
@@ -75,7 +73,6 @@ def gradient_ascent(
 
                 forget_prompts = [descriptions[label] for label in forget_labels]
                 remain_prompts = [descriptions[label] for label in remain_labels]
-                print(forget_labels, remain_labels)
 
                 forget_batch = {
                     "jpg": forget_images.permute(0, 2, 3, 1),
@@ -96,14 +93,12 @@ def gradient_ascent(
 
                 if mask_path:
                     for n, p in model.named_parameters():
-                        if p.grad is not None and n in parameters:
+                        if p.grad is not None:
                             p.grad *= mask[n.split("model.diffusion_model.")[-1]].to(
                                 device
                             )
-                            print(n)
 
                 optimizer.step()
-
                 t.set_description("Epoch %i" % epoch)
                 t.set_postfix(loss=loss.item() / batch_size)
                 sleep(0.1)
@@ -263,7 +258,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     classes = int(args.class_to_forget)
-    print(classes)
     train_method = args.train_method
     alpha = args.alpha
     batch_size = args.batch_size

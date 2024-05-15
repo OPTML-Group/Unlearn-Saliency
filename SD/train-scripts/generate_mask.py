@@ -21,7 +21,6 @@ def generate_mask(
     # MODEL TRAINING SETUP
     model = setup_model(config_path, ckpt_path, device)
     train_dl, descriptions = setup_forget_data(classes, batch_size, image_size)
-    print(descriptions)
 
     model.eval()
     criteria = torch.nn.MSELoss()
@@ -39,10 +38,8 @@ def generate_mask(
 
             null_prompts = ["" for label in labels]
             prompts = [descriptions[label] for label in labels]
-            print(prompts)
 
             forget_batch = {"jpg": images.permute(0, 2, 3, 1), "txt": prompts}
-
             null_batch = {"jpg": images.permute(0, 2, 3, 1), "txt": null_prompts}
 
             forget_input, forget_emb = model.get_input(
@@ -126,7 +123,6 @@ def generate_nsfw_mask(
     # MODEL TRAINING SETUP
     model = setup_model(config_path, ckpt_path, device)
     train_dl, _ = setup_forget_nsfw_data(batch_size, image_size)
-    print(len(train_dl))
 
     model.eval()
     criteria = torch.nn.MSELoss()
@@ -148,10 +144,8 @@ def generate_nsfw_mask(
 
             null_prompts = [""] * batch_size
             prompts = [word_nude] * batch_size
-            print(prompts)
 
             forget_batch = {"jpg": images.permute(0, 2, 3, 1), "txt": prompts}
-
             null_batch = {"jpg": images.permute(0, 2, 3, 1), "txt": null_prompts}
 
             forget_input, forget_emb = model.get_input(
@@ -171,15 +165,13 @@ def generate_nsfw_mask(
 
             preds = (1 + c_guidance) * forget_out - c_guidance * null_out
 
-            # print(images.shape, noise.shape, preds.shape)
-            loss = -criteria(noise, preds)
+            loss = - criteria(noise, preds)
             loss.backward()
 
             with torch.no_grad():
                 for name, param in model.model.diffusion_model.named_parameters():
                     if param.grad is not None:
                         gradients[name] += param.grad.data.cpu()
-                        # gradients[name] += param.grad.data
 
     with torch.no_grad():
         for name in gradients:
@@ -187,7 +179,6 @@ def generate_nsfw_mask(
 
         threshold_list = [0.5]
         for i in threshold_list:
-            print(i)
             sorted_dict_positions = {}
             hard_dict = {}
 
@@ -305,7 +296,6 @@ if __name__ == "__main__":
 
     # classes = [int(d) for d in args.classes.split(',')]
     classes = int(args.classes)
-    print(classes)
     c_guidance = args.c_guidance
     batch_size = args.batch_size
     epochs = args.epochs
@@ -318,7 +308,6 @@ if __name__ == "__main__":
     num_timesteps = args.num_timesteps
 
     if args.nsfw:
-        print(args.nsfw)
         generate_nsfw_mask(
             c_guidance,
             batch_size,

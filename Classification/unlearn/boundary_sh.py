@@ -37,7 +37,6 @@ def boundary_shrink_iter(
     bound = 0.1  # hard coding in the paper
 
     train_loader = data_loaders["forget"]
-    print(len(train_loader))
     losses = utils.AverageMeter()
     top1 = utils.AverageMeter()
 

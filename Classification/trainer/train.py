@@ -59,8 +59,6 @@ def train(train_loader, model, criterion, optimizer, epoch, args, mask=None, l1=
                 for name, param in model.named_parameters():
                     if param.grad is not None:
                         param.grad *= mask[name]
-                        print(mask[name])
-
             optimizer.step()
 
             output = output_clean.float()
@@ -107,7 +105,6 @@ def train(train_loader, model, criterion, optimizer, epoch, args, mask=None, l1=
                 for name, param in model.named_parameters():
                     if param.grad is not None:
                         param.grad *= mask[name]
-                        # print(mask[name])
 
             optimizer.step()
 

@@ -11,7 +11,6 @@ def RL_proximal(data_loaders, model, criterion, optimizer, epoch, args, mask=Non
     retain_loader = data_loaders["retain"]
     forget_dataset = deepcopy(forget_loader.dataset)
     mask_ratio = args.mask_ratio
-    print(mask_ratio)
     
     # concat all params
     init_params = torch.concat([param.view(-1) for param in model.parameters()], dim=0)
@@ -20,7 +19,6 @@ def RL_proximal(data_loaders, model, criterion, optimizer, epoch, args, mask=Non
     
     if args.dataset == "cifar10" or args.dataset == "cifar100" or args.dataset == "TinyImagenet":
         forget_dataset.targets = np.random.randint(0, args.num_classes, forget_dataset.targets.shape)
-        print(forget_dataset.targets)
     
         retain_dataset = retain_loader.dataset
         train_dataset = torch.utils.data.ConcatDataset([forget_dataset,retain_dataset])
@@ -56,7 +54,6 @@ def RL_proximal(data_loaders, model, criterion, optimizer, epoch, args, mask=Non
             params = torch.concat([param.view(-1) for param in model.parameters()], dim=0)
             diff_params = params - init_params
             threshold = -torch.topk(-diff_params.abs(), ratio)[0][-1]
-            # print(threshold)
             params = torch.where(diff_params > threshold, params - threshold, 
                                         torch.where(diff_params < -threshold, params + threshold, init_params))
             # update params
@@ -111,7 +108,6 @@ def RL_proximal(data_loaders, model, criterion, optimizer, epoch, args, mask=Non
             params = torch.concat([param.view(-1) for param in model.parameters()], dim=0)
             diff_params = params - init_params
             threshold = -torch.topk(-diff_params.abs(), ratio)[0][-1]
-            # print(threshold)
             params = torch.where(diff_params > threshold, params - threshold, 
                                         torch.where(diff_params < -threshold, params + threshold, init_params))
             # update params
@@ -135,7 +131,6 @@ def RL_proximal(data_loaders, model, criterion, optimizer, epoch, args, mask=Non
             params = torch.concat([param.view(-1) for param in model.parameters()], dim=0)
             diff_params = params - init_params
             threshold = -torch.topk(-diff_params.abs(), ratio)[0][-1]
-            # print(threshold)
             params = torch.where(diff_params > threshold, params - threshold, 
                                         torch.where(diff_params < -threshold, params + threshold, init_params))
             # update params

@@ -45,8 +45,6 @@ def setup_model_dataset(args):
         model = model_dict[args.arch](num_classes=classes)
 
     model.normalize = normalization
-    print(model)
-
     return model, train_set_loader, val_loader, test_loader
 
 

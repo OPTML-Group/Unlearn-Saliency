@@ -50,7 +50,6 @@ def save_gradient_ratio(data_loaders, model, criterion, args):
     threshold_list = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
     for i in threshold_list:
-        print(i)
         sorted_dict_positions = {}
         hard_dict = {}
 
@@ -130,7 +129,6 @@ def main():
         except:
             forget_dataset.labels = -forget_dataset.labels[marked] - 1
         forget_loader = replace_loader_dataset(forget_dataset, seed=seed, shuffle=True)
-        print(len(forget_dataset))
         retain_dataset = copy.deepcopy(marked_loader.dataset)
         try:
             marked = retain_dataset.targets >= 0
@@ -142,7 +140,6 @@ def main():
         except:
             retain_dataset.labels = retain_dataset.labels[marked]
         retain_loader = replace_loader_dataset(retain_dataset, seed=seed, shuffle=True)
-        print(len(retain_dataset))
         assert len(forget_dataset) + len(retain_dataset) == len(
             train_loader_full.dataset
         )
@@ -155,7 +152,6 @@ def main():
             forget_loader = replace_loader_dataset(
                 forget_dataset, seed=seed, shuffle=True
             )
-            print(len(forget_dataset))
             retain_dataset = copy.deepcopy(marked_loader.dataset)
             marked = retain_dataset.targets >= 0
             retain_dataset.data = retain_dataset.data[marked]
@@ -163,7 +159,6 @@ def main():
             retain_loader = replace_loader_dataset(
                 retain_dataset, seed=seed, shuffle=True
             )
-            print(len(retain_dataset))
             assert len(forget_dataset) + len(retain_dataset) == len(
                 train_loader_full.dataset
             )
@@ -174,7 +169,6 @@ def main():
             forget_loader = replace_loader_dataset(
                 forget_dataset, seed=seed, shuffle=True
             )
-            print(len(forget_dataset))
             retain_dataset = copy.deepcopy(marked_loader.dataset)
             marked = retain_dataset.targets >= 0
             retain_dataset.imgs = retain_dataset.imgs[marked]
@@ -182,7 +176,6 @@ def main():
             retain_loader = replace_loader_dataset(
                 retain_dataset, seed=seed, shuffle=True
             )
-            print(len(retain_dataset))
             assert len(forget_dataset) + len(retain_dataset) == len(
                 train_loader_full.dataset
             )

@@ -20,7 +20,6 @@ def l1_regularization(model):
 @iterative_unlearn
 def GA(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
     train_loader = data_loaders["forget"]
-    print(len(train_loader))
     losses = utils.AverageMeter()
     top1 = utils.AverageMeter()
 
@@ -93,7 +92,6 @@ def GA(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
                 for name, param in model.named_parameters():
                     if param.grad is not None:
                         param.grad *= mask[name]
-                        # print(mask[name])
 
             optimizer.step()
 

@@ -48,7 +48,6 @@ def certain_label(
         # train only x attention layers
         if train_method == "xattn":
             if "attn2" in name:
-                print(name)
                 parameters.append(param)
         # train all layers
         if train_method == "full":
@@ -80,7 +79,6 @@ def certain_label(
                     for label in forget_labels
                 ]
                 remain_prompts = [descriptions[label] for label in remain_labels]
-                print(forget_prompts, pseudo_prompts, remain_prompts)
 
                 # remain stage
                 remain_batch = {
@@ -130,14 +128,12 @@ def certain_label(
 
                 if mask_path:
                     for n, p in model.named_parameters():
-                        if p.grad is not None and n in parameters:
+                        if p.grad is not None:
                             p.grad *= mask[n.split("model.diffusion_model.")[-1]].to(
                                 device
                             )
-                            print(n)
 
                 optimizer.step()
-
                 time.set_description("Epoch %i" % epoch)
                 time.set_postfix(loss=loss.item() / batch_size)
                 sleep(0.1)
@@ -299,7 +295,6 @@ if __name__ == "__main__":
 
     # classes = [int(d) for d in args.classes.split(',')]
     classes = int(args.class_to_forget)
-    print(classes)
     train_method = args.train_method
     alpha = args.alpha
     batch_size = args.batch_size

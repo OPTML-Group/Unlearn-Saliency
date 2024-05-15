@@ -485,7 +485,6 @@ class TinyImageNet:
                 test_set.targets = test_set.targets[
                     test_set.targets != class_to_replace
                 ]
-                print(test_set.targets)
                 test_set.targets = test_set.targets.tolist()
         if indexes_to_replace is not None:
             replace_indexes(

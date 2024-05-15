@@ -18,9 +18,7 @@ def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
         try:
             forget_dataset.targets = np.random.randint(0, args.num_classes, forget_dataset.targets.shape)
         except:
-            print(forget_dataset.dataset.targets[:10])
             forget_dataset.dataset.targets = np.random.randint(0, args.num_classes, len(forget_dataset.dataset.targets))
-            print(forget_dataset.dataset.targets[:10])
     
         retain_dataset = retain_loader.dataset
         train_dataset = torch.utils.data.ConcatDataset([forget_dataset,retain_dataset])

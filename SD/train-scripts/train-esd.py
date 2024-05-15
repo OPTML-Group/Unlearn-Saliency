@@ -193,7 +193,7 @@ def train_esd(
         words = [word.strip() for word in words]
     else:
         words = [prompt]
-    print(words)
+        
     ddim_eta = 0
     # MODEL TRAINING SETUP
 
@@ -210,36 +210,29 @@ def train_esd(
             if name.startswith("out.") or "attn2" in name or "time_embed" in name:
                 pass
             else:
-                print(name)
                 parameters.append(param)
         # train only self attention layers
         if train_method == "selfattn":
             if "attn1" in name:
-                print(name)
                 parameters.append(param)
         # train only x attention layers
         if train_method == "xattn":
             if "attn2" in name:
-                print(name)
                 parameters.append(param)
         # train all layers
         if train_method == "full":
-            print(name)
             parameters.append(param)
         # train all layers except time embed layers
         if train_method == "notime":
             if not (name.startswith("out.") or "time_embed" in name):
-                print(name)
                 parameters.append(param)
         if train_method == "xlayer":
             if "attn2" in name:
                 if "output_blocks.6." in name or "output_blocks.8." in name:
-                    print(name)
                     parameters.append(param)
         if train_method == "selflayer":
             if "attn1" in name:
                 if "input_blocks.4." in name or "input_blocks.7." in name:
-                    print(name)
                     parameters.append(param)
     # set model to train
     model.train()
@@ -324,9 +317,8 @@ def train_esd(
 
         if mask_path:
             for n, p in model.named_parameters():
-                if p.grad is not None and "attn2" in n:
+                if p.grad is not None:
                     p.grad *= mask[n.split("model.diffusion_model.")[-1]].to(devices[0])
-                    print(n)
 
         opt.step()
         # save checkpoint and loss curve
@@ -361,8 +353,6 @@ def save_model(
     save_diffusers=True,
 ):
     # SAVE MODEL
-
-    #     PATH = f'{FOLDER}/{model_type}-word_{word_print}-method_{train_method}-sg_{start_guidance}-ng_{neg_guidance}-iter_{i+1}-lr_{lr}-startmodel_{start_model}-numacc_{numacc}.pt'
 
     folder_path = f"models/{name}"
     os.makedirs(folder_path, exist_ok=True)

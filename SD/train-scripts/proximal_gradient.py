@@ -56,11 +56,9 @@ def proximal_gradient(
         # train only x attention layers
         if train_method == "xattn":
             if "attn2" in name:
-                print(name)
                 parameters.append(param)
         # train all layers
         if train_method == "full":
-            # print(name)
             parameters.append(param)
 
     optimizer = torch.optim.Adam(parameters, lr=lr)
@@ -91,7 +89,6 @@ def proximal_gradient(
                     for label in forget_labels
                 ]
                 remain_prompts = [descriptions[label] for label in remain_labels]
-                print(forget_prompts, pseudo_prompts, remain_prompts)
 
                 # remain stage
                 remain_batch = {
@@ -351,7 +348,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     classes = int(args.class_to_forget)
-    print(classes)
     train_method = args.train_method
     alpha = args.alpha
     batch_size = args.batch_size
