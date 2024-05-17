@@ -27,9 +27,6 @@
 
 This is the official code repository for the ICLR 2024 Spotlight paper [SalUn: Empowering Machine Unlearning via Gradient-based Weight Saliency in Both Image Classification and Generation](https://arxiv.org/abs/2310.12508).
 
-**NEW RELEASED:** Feel free to check out our [new work](https://github.com/OPTML-Group/Unlearn-WorstCase) about **a new perspective of evaluation** on Machine Unlearning!
-
-
 <table align="center">
   <tr>
     <td align="center"> 
@@ -39,6 +36,9 @@ This is the official code repository for the ICLR 2024 Spotlight paper [SalUn: E
     </td>
   </tr>
 </table>
+
+## News ## 
+:mega: Feel free to check out our [new work](https://github.com/OPTML-Group/Unlearn-WorstCase) about **a new perspective of evaluation** on Machine Unlearning!
 
 ## Abstract
 
