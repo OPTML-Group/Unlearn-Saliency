@@ -7,6 +7,9 @@ This is the official repository for Saliency Unlearning for stable diffusion. Th
 * Download the weights from [here](https://huggingface.co/CompVis/stable-diffusion-v-1-4-original/resolve/main/sd-v1-4-full-ema.ckpt) and move them to `SD/models/ldm/`
 * [Only for training] To convert your trained models to diffusers download the diffusers Unet config from [here](https://huggingface.co/CompVis/stable-diffusion-v1-4/blob/main/unet/config.json)
 
+# Unlearned Weights
+The unlearned weights for NSFW and object forgetting are available [here](https://drive.google.com/drive/folders/1fOx-v_ru3NfB2rPe5LGxaQS-Q17QzKzp?usp=sharing).
+
 # Forgetting Training with Saliency-Unlearning
 1. First, we need to generate saliency map for unlearning.
 
