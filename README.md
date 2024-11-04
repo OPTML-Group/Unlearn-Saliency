@@ -38,7 +38,7 @@ This is the official code repository for the ICLR 2024 Spotlight paper [SalUn: E
 </table>
 
 ## News ## 
-:mega: Feel free to check out our [new work](https://github.com/OPTML-Group/Unlearn-WorstCase) about **a new perspective of evaluation** on Machine Unlearning!
+:mega: Feel free to check out our [new work](https://github.com/OPTML-Group/Unlearn-Simple) about **a simple but effective unlearning method** for LLMs!
 
 ## Abstract
 
