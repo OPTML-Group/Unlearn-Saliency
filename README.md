@@ -40,7 +40,7 @@ This is the official code repository for the ICLR 2024 Spotlight paper [SalUn: E
 ## News ## 
 :mega: Feel free to check out our [new work](https://github.com/OPTML-Group/Unlearn-Simple) about **a simple but effective unlearning method** for LLMs!
 
-:mega: Check out our [latest work](https://github.com/OPTML-Group/Unlearn-Smooth) at ICML 2025 on making LLM unlearning more robust through smoothness optimization!
+:mega: Check out our [ICML 2025 paper](https://github.com/OPTML-Group/Unlearn-Smooth) on making LLM unlearning more robust through smoothness optimization!
 
 ## Abstract
 
