@@ -85,15 +85,18 @@ def nsfw_removal(
 
     # TRAINING CODE
     for epoch in range(epochs):
+        remain_iter = iter(remain_dl)
         with tqdm(total=len(forget_dl)) as time:
             # with tqdm(total=10) as time:
-
-            for i, iages in enumerate(forget_dl):
+            for i, forget_images in enumerate(forget_dl):
                 # for i in range(1):
                 optimizer.zero_grad()
 
-                forget_images = next(iter(forget_dl))
-                remain_images = next(iter(remain_dl))
+                try:
+                    remain_images = next(remain_iter)
+                except StopIteration:
+                    remain_iter = iter(remain_dl)
+                    remain_images = next(remain_iter)
 
                 forget_prompts = [word_nude] * batch_size
 
