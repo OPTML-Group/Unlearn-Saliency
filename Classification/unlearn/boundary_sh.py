@@ -8,6 +8,30 @@ import utils
 from .impl import iterative_unlearn
 
 
+def _apply_mask_to_grads(model, mask):
+    for name, param in model.named_parameters():
+        if param.grad is not None:
+            param.grad *= mask[name]
+
+
+def _restore_masked_params(model, mask, theta0, optimizer):
+    with torch.no_grad():
+        for name, param in model.named_parameters():
+            if name not in mask:
+                continue
+
+            mask_tensor = mask[name].to(device=param.device, dtype=param.dtype)
+            inv_mask_tensor = 1 - mask_tensor
+            if torch.count_nonzero(inv_mask_tensor) == 0:
+                continue
+
+            param.data.mul_(mask_tensor).add_(theta0[name].to(param.device) * inv_mask_tensor)
+
+            state = optimizer.state.get(param, None)
+            if state is not None and "momentum_buffer" in state:
+                state["momentum_buffer"].mul_(mask_tensor)
+
+
 def discretize(x):
     return torch.round(x * 255) / 255
 
@@ -33,6 +57,14 @@ def boundary_shrink_iter(
     data_loaders, model, criterion, optimizer, epoch, args, mask=None, test_model=None
 ):
     assert test_model is not None
+    theta0 = None
+    if mask:
+        with torch.no_grad():
+            theta0 = {
+                name: param.detach().clone()
+                for name, param in model.named_parameters()
+                if name in mask
+            }
 
     bound = 0.1  # hard coding in the paper
 
@@ -70,11 +102,11 @@ def boundary_shrink_iter(
         loss.backward()
 
         if mask:
-            for name, param in model.named_parameters():
-                if param.grad is not None:
-                    param.grad *= mask[name]
+            _apply_mask_to_grads(model, mask)
                     
         optimizer.step()
+        if mask:
+            _restore_masked_params(model, mask, theta0, optimizer)
 
         output = output_clean.float()
         loss = loss.float()

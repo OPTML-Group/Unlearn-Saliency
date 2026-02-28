@@ -8,11 +8,45 @@ import utils
 from .impl import iterative_unlearn
 
 
+def _apply_mask_to_grads(model, mask):
+    for name, param in model.named_parameters():
+        if param.grad is not None:
+            param.grad *= mask[name]
+
+
+def _restore_masked_params(model, mask, theta0, optimizer):
+    with torch.no_grad():
+        for name, param in model.named_parameters():
+            if name not in mask:
+                continue
+
+            mask_tensor = mask[name].to(device=param.device, dtype=param.dtype)
+            inv_mask_tensor = 1 - mask_tensor
+            if torch.count_nonzero(inv_mask_tensor) == 0:
+                continue
+
+            # Keep masked-out weights exactly at initialization value (theta0).
+            param.data.mul_(mask_tensor).add_(theta0[name].to(param.device) * inv_mask_tensor)
+
+            # Prevent momentum from reintroducing updates on masked-out coordinates.
+            state = optimizer.state.get(param, None)
+            if state is not None and "momentum_buffer" in state:
+                state["momentum_buffer"].mul_(mask_tensor)
+
+
 @iterative_unlearn
 def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
     forget_loader = data_loaders["forget"]
     retain_loader = data_loaders["retain"]
     forget_dataset = deepcopy(forget_loader.dataset)
+    theta0 = None
+    if mask:
+        with torch.no_grad():
+            theta0 = {
+                name: param.detach().clone()
+                for name, param in model.named_parameters()
+                if name in mask
+            }
     
     if args.dataset == "cifar100" or args.dataset == "TinyImagenet":
         try:
@@ -48,11 +82,12 @@ def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
             loss.backward()
             
             if mask:
-                for name, param in model.named_parameters():
-                    if param.grad is not None:
-                        param.grad *= mask[name]
+                _apply_mask_to_grads(model, mask)
             
             optimizer.step()
+            
+            if mask:
+                _restore_masked_params(model, mask, theta0, optimizer)
       
             output = output_clean.float()
             loss = loss.float()
@@ -97,11 +132,12 @@ def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
             loss.backward()
             
             if mask:
-                for name, param in model.named_parameters():
-                    if param.grad is not None:
-                        param.grad *= mask[name]
+                _apply_mask_to_grads(model, mask)
             
             optimizer.step()
+            
+            if mask:
+                _restore_masked_params(model, mask, theta0, optimizer)
             
         for i, (image, target) in enumerate(retain_loader):
             image = image.cuda()
@@ -115,11 +151,12 @@ def RL(data_loaders, model, criterion, optimizer, epoch, args, mask=None):
             loss.backward()
             
             if mask:
-                for name, param in model.named_parameters():
-                    if param.grad is not None:
-                        param.grad *= mask[name]
+                _apply_mask_to_grads(model, mask)
             
             optimizer.step()
+            
+            if mask:
+                _restore_masked_params(model, mask, theta0, optimizer)
             
             output = output_clean.float()
             loss = loss.float()
